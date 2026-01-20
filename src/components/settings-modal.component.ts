@@ -1,0 +1,180 @@
+
+import { Component, ChangeDetectionStrategy, input, output, inject, signal, effect } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { StorageService } from '../services/storage.service';
+
+@Component({
+  selector: 'app-settings-modal',
+  standalone: true,
+  imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @if (isOpen()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div 
+          class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+          (click)="close.emit()"
+        ></div>
+
+        <!-- Panel -->
+        <div class="relative bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in-up">
+          <div class="px-6 py-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/50">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Settings
+            </h3>
+            <button (click)="close.emit()" class="text-gray-400 hover:text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          
+          <div class="p-6 space-y-4">
+            <!-- Language Selector -->
+             <div class="mb-4">
+              <label for="language" class="block text-sm font-medium text-gray-400 mb-2">AI Response Language</label>
+              <div class="relative">
+                <select 
+                  id="language"
+                  (change)="onLanguageChange($event)"
+                  class="block w-full bg-gray-700 border border-gray-600 text-white py-2 px-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none transition-colors"
+                >
+                  @for (lang of availableLanguages(); track lang.code) {
+                    <option [value]="lang.code" [selected]="lang.code === currentLanguage()">{{ lang.name }}</option>
+                  }
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="mt-1 text-xs text-gray-500">Changes apply immediately to new messages.</p>
+            </div>
+
+            <!-- Install App Button (Conditional) -->
+            @if (canInstall()) {
+               <div class="mb-4">
+                <button 
+                  (click)="installPwa.emit()"
+                  class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-4 py-3 rounded-lg transition-all shadow-lg shadow-purple-900/30"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Install App
+                </button>
+                <p class="mt-1 text-xs text-gray-500 text-center">Install on your device for a better experience.</p>
+               </div>
+            }
+
+            <div class="border-t border-gray-700 pt-4">
+              <p class="text-sm text-gray-400 mb-4">Manage your saved data.</p>
+              
+              <div class="space-y-3">
+                <button 
+                  (click)="exportData.emit()"
+                  class="w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-200 px-4 py-3 rounded-lg transition-colors group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-400 group-hover:text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export Backup
+                </button>
+
+                <button 
+                  (click)="triggerImport.emit()"
+                  class="w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-200 px-4 py-3 rounded-lg transition-colors group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400 group-hover:text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Import Backup
+                </button>
+              </div>
+
+              <!-- Storage Info -->
+              <div class="mt-4 bg-gray-900/30 rounded-lg p-3 border border-gray-700/50">
+                <div class="flex justify-between items-center text-sm mb-1">
+                  <span class="text-gray-400">Local Storage Usage</span>
+                  <span class="font-mono text-gray-200 font-bold">{{ storageStats().kb }} KB</span>
+                </div>
+                
+                @if (storageStats().bytes > 1048576) { <!-- Show warning if > 1MB (1024*1024 bytes) -->
+                  <div class="flex items-start gap-1.5 mt-2 text-xs text-yellow-500/90">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <p>Browser storage limits are usually around 5MB (approx. 5000 KB). If you exceed this, importing may fail.</p>
+                  </div>
+                }
+              </div>
+
+              @if (importStatusMessage()) {
+                <div class="mt-4 p-3 rounded-lg bg-green-900/20 border border-green-700 text-green-200 text-sm flex justify-between items-start gap-2 animate-fade-in shadow-inner">
+                  <span>{{ importStatusMessage() }}</span>
+                  <button (click)="clearImportStatus.emit()" class="text-green-400 hover:text-white transition-colors shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              }
+            </div>
+            
+            <input type="file" id="importFile" (change)="onFileSelected($event)" accept=".json" hidden>
+          </div>
+        </div>
+      </div>
+    }
+  `
+})
+export class SettingsModalComponent {
+  private storageService = inject(StorageService);
+
+  isOpen = input.required<boolean>();
+  currentLanguage = input.required<string>();
+  availableLanguages = input.required<{code: string, name: string}[]>();
+  importStatusMessage = input<string | null>(null);
+  canInstall = input<boolean>(false);
+
+  close = output<void>();
+  languageChange = output<string>();
+  exportData = output<void>();
+  triggerImport = output<void>();
+  importData = output<File>();
+  clearImportStatus = output<void>();
+  installPwa = output<void>();
+
+  storageStats = signal({ kb: '0.00', mb: '0.00', bytes: 0 });
+
+  constructor() {
+    effect(() => {
+      // Re-calculate when modal is open.
+      const isOpen = this.isOpen();
+      const status = this.importStatusMessage();
+      
+      if (isOpen) {
+        this.storageStats.set(this.storageService.getStorageUsage());
+      }
+    });
+  }
+
+  onLanguageChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    this.languageChange.emit(select.value);
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.importData.emit(input.files[0]);
+      input.value = ''; // Reset
+    }
+  }
+}

@@ -1,0 +1,143 @@
+
+import { Component, ChangeDetectionStrategy, input, ViewChild, ElementRef, effect, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ChatMessage } from '../services/gemini.service';
+
+@Component({
+  selector: 'app-chat-list',
+  standalone: true,
+  imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+  `],
+  template: `
+    <div class="flex-grow overflow-y-auto p-4 space-y-4" #chatContainer>
+      @if (messages().length === 0) {
+        <div class="flex flex-col items-center justify-center h-full text-gray-500 text-sm text-center opacity-60">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+          <p>Ask me about the video...</p>
+        </div>
+      }
+
+      @for (msg of messages(); track $index) {
+        <div class="flex flex-col gap-1" [class.items-end]="msg.role === 'user'" [class.items-start]="msg.role === 'model'">
+          <div 
+            class="max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-md group relative"
+            [class.bg-purple-600]="msg.role === 'user'"
+            [class.text-white]="msg.role === 'user'"
+            [class.bg-gray-700]="msg.role === 'model'"
+            [class.text-gray-100]="msg.role === 'model'"
+            [class.rounded-br-none]="msg.role === 'user'"
+            [class.rounded-bl-none]="msg.role === 'model'"
+          >
+            <div [innerHTML]="formatMessage(msg.text)" class="select-text cursor-text leading-relaxed"></div>
+            
+            <!-- Copy Button (Only for Model) -->
+            @if (msg.role === 'model') {
+              <div class="mt-2 pt-2 border-t border-gray-600/50 flex justify-end">
+                <button 
+                  (click)="copyToClipboard(msg.text, $index)" 
+                  class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-600/50"
+                  [title]="copiedIndex() === $index ? 'Copied!' : 'Copy response'"
+                >
+                  @if (copiedIndex() === $index) {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span class="text-green-400 font-medium">Copied</span>
+                  } @else {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    <span>Copy</span>
+                  }
+                </button>
+              </div>
+            }
+          </div>
+          
+          <!-- Sources for AI responses -->
+          @if (msg.role === 'model' && msg.sources && msg.sources.length > 0) {
+            <div class="ml-2 max-w-[85%] text-xs">
+                <p class="text-gray-500 mb-1">Fuentes:</p>
+                <div class="flex flex-wrap gap-2">
+                  @for (source of msg.sources; track source.uri) {
+                    <a [href]="source.uri" target="_blank" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-blue-300 px-2 py-0.5 rounded truncate max-w-[150px]" [title]="source.title">
+                      {{ source.title }}
+                    </a>
+                  }
+                </div>
+            </div>
+          }
+        </div>
+      }
+
+      @if (isThinking()) {
+        <div class="flex items-start">
+          <div class="bg-gray-700 rounded-2xl rounded-bl-none px-4 py-3 shadow-md flex items-center space-x-1">
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+          </div>
+        </div>
+      }
+
+      @if (error()) {
+        <div class="text-red-400 text-xs text-center p-2 bg-red-900/20 rounded border border-red-900/50">
+          {{ error() }}
+        </div>
+      }
+    </div>
+  `
+})
+export class ChatListComponent {
+  messages = input.required<ChatMessage[]>();
+  isThinking = input.required<boolean>();
+  error = input.required<string | null>();
+
+  // State to track which message was just copied
+  copiedIndex = signal<number | null>(null);
+
+  @ViewChild('chatContainer') chatContainer!: ElementRef;
+
+  constructor() {
+    // Auto-scroll effect
+    effect(() => {
+        const msgs = this.messages();
+        const thinking = this.isThinking(); // Track thinking to scroll when it starts
+        if (this.chatContainer) {
+            setTimeout(() => {
+                this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
+            }, 50);
+        }
+    });
+  }
+
+  formatMessage(text: string): string {
+    return text.replace(/\n/g, '<br>');
+  }
+
+  async copyToClipboard(text: string, index: number) {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copiedIndex.set(index);
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        if (this.copiedIndex() === index) {
+          this.copiedIndex.set(null);
+        }
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  }
+}
