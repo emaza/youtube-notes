@@ -12,7 +12,11 @@ import { FormsModule } from '@angular/forms';
     <header class="relative flex flex-col md:flex-row items-center justify-center gap-6 mb-10 flex-shrink-0 w-full max-w-5xl mx-auto z-0">
       
       <!-- Logo Section -->
-      <div class="relative group shrink-0">
+      <div 
+        (click)="clearUrl.emit()"
+        class="relative group shrink-0 cursor-pointer"
+        title="Go Home"
+      >
         <div class="absolute -inset-1 bg-gradient-to-r from-red-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
         <!-- Replace the src below with your uploaded image URL -->
         <img 
@@ -24,7 +28,10 @@ import { FormsModule } from '@angular/forms';
 
       <!-- Text Section -->
       <div class="text-center md:text-left z-10">
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-gray-200 tracking-tight drop-shadow-sm">
+        <h1 
+          (click)="clearUrl.emit()"
+          class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-gray-200 tracking-tight drop-shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+        >
           YouTube AI Notes
         </h1>
         <p class="mt-2 text-lg text-gray-400 font-medium tracking-wide">Watch, summarize, and chat with AI about YouTube videos. All in one place.</p>

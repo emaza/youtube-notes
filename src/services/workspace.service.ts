@@ -303,5 +303,6 @@ export class WorkspaceService {
     this.chatError.set(null);
     this.showSummaryButton.set(true);
     this.currentVideoType.set('video');
+    this.currentPage.set(1);
   }
 }
