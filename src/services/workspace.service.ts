@@ -88,6 +88,43 @@ export class WorkspaceService {
   constructor() {
     this.initializeLanguage();
     this.refreshSavedVideos();
+    this.checkUrlParams();
+  }
+
+  // --- URL Management ---
+
+  private checkUrlParams() {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const vId = params.get('v');
+    const typeParam = params.get('type');
+    // Validate type
+    const type: VideoType = (typeParam === 'short' || typeParam === 'video') ? typeParam : 'video';
+
+    if (vId) {
+      // Reconstruct a valid YouTube URL to trigger the loading logic
+      const baseUrl = type === 'short' ? 'https://www.youtube.com/shorts/' : 'https://www.youtube.com/watch?v=';
+      this.loadVideo(`${baseUrl}${vId}`, undefined, type);
+    }
+  }
+
+  private updateBrowserUrl(videoId: string, type: VideoType) {
+    if (typeof window === 'undefined') return;
+    
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', videoId);
+    url.searchParams.set('type', type);
+    window.history.replaceState({}, '', url.toString());
+  }
+
+  private clearBrowserUrl() {
+    if (typeof window === 'undefined') return;
+    
+    const url = new URL(window.location.href);
+    url.searchParams.delete('v');
+    url.searchParams.delete('type');
+    window.history.replaceState({}, '', url.toString());
   }
 
   // --- Actions ---
@@ -133,15 +170,20 @@ export class WorkspaceService {
   async loadVideo(url: string, knownTitle?: string, knownType?: VideoType) {
     this.youtubeUrl.set(url);
     
-    // Determine Type
+    // Determine Type logic
+    // We check URL pattern, but we don't set the signal yet if it's a new video
+    // because resetWorkspace() below would overwrite it to 'video'.
     const isShort = url.includes('/shorts/');
-    this.currentVideoType.set(knownType || (isShort ? 'short' : 'video'));
+    const finalType = knownType || (isShort ? 'short' : 'video');
 
     const vId = this.videoId();
     if (!vId) {
       this.resetWorkspace();
       return;
     }
+
+    // Update Browser URL
+    this.updateBrowserUrl(vId, finalType);
 
     // Load Data
     this.chatError.set(null);
@@ -155,9 +197,11 @@ export class WorkspaceService {
       this.currentVideoTitle.set(savedData.title);
       this.currentChannelTitle.set(savedData.channelTitle || '');
       this.currentChannelUrl.set(savedData.channelUrl || '');
-      this.currentVideoType.set(savedData.type || (isShort ? 'short' : 'video'));
+      this.currentVideoType.set(savedData.type || finalType);
     } else {
       this.resetWorkspace(false); // Don't clear URL
+      // Set type AFTER reset, otherwise resetWorkspace sets it to 'video'
+      this.currentVideoType.set(finalType); 
       this.currentVideoTitle.set(knownTitle || '');
     }
 
@@ -247,7 +291,10 @@ export class WorkspaceService {
   }
 
   resetWorkspace(clearUrl = true) {
-    if (clearUrl) this.youtubeUrl.set('');
+    if (clearUrl) {
+      this.youtubeUrl.set('');
+      this.clearBrowserUrl();
+    }
     this.messages.set([]);
     this.notes.set('');
     this.currentVideoTitle.set('');
