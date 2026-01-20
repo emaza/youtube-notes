@@ -27,7 +27,7 @@ import { FormsModule } from '@angular/forms';
         <h1 class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-gray-200 tracking-tight drop-shadow-sm">
           YouTube AI Notes
         </h1>
-        <p class="mt-2 text-lg text-gray-400 font-medium tracking-wide">Watch, summarize, and chat with AI. All in one place.</p>
+        <p class="mt-2 text-lg text-gray-400 font-medium tracking-wide">Watch, summarize, and chat with AI about YouTube videos. All in one place.</p>
       </div>
 
       <!-- Settings Icon Button (Absolute positioning relative to header container) -->
