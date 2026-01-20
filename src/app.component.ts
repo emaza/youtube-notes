@@ -1,6 +1,7 @@
 
 import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { WorkspaceService } from './services/workspace.service';
 import { StorageService, SavedVideoSummary } from './services/storage.service';
 import { PwaService } from './services/pwa.service';
@@ -9,6 +10,7 @@ import { HeaderComponent } from './components/header.component';
 import { SessionListComponent } from './components/session-list.component';
 import { VideoPlayerComponent } from './components/video-player.component';
 import { AssistantComponent } from './components/assistant.component';
+import { NotesComponent } from './components/notes.component';
 import { SettingsModalComponent } from './components/settings-modal.component';
 
 @Component({
@@ -16,12 +18,14 @@ import { SettingsModalComponent } from './components/settings-modal.component';
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, 
+    CommonModule,
+    DragDropModule,
     ConfirmationModalComponent,
     HeaderComponent,
     SessionListComponent,
     VideoPlayerComponent,
     AssistantComponent,
+    NotesComponent,
     SettingsModalComponent
   ],
 })
@@ -31,11 +35,14 @@ export class AppComponent {
   storageService = inject(StorageService);
   pwaService = inject(PwaService);
 
-  // Local UI State (Modals)
+  // Local UI State
   isDeleteModalOpen = signal(false);
   videoToDeleteId = signal<string | null>(null);
   isSettingsModalOpen = signal(false);
   importStatusMessage = signal<string | null>(null);
+  
+  // Mobile Tabs State
+  activeMobileTab = signal<'chat' | 'notes'>('chat');
   
   // Constants
   availableLanguages = [

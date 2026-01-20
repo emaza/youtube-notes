@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="relative flex flex-col md:flex-row items-center justify-center gap-6 mb-10 flex-shrink-0 w-full max-w-5xl mx-auto">
+    <header class="relative flex flex-col md:flex-row items-center justify-center gap-6 mb-10 flex-shrink-0 w-full max-w-5xl mx-auto z-0">
       
       <!-- Logo Section -->
       <div class="relative group shrink-0">
@@ -31,7 +31,7 @@ import { FormsModule } from '@angular/forms';
       </div>
 
       <!-- Settings Icon Button (Absolute positioning relative to header container) -->
-      <div class="absolute top-0 right-0 md:top-1/2 md:-translate-y-1/2 md:-right-16">
+      <div class="absolute top-0 right-0 md:top-1/2 md:-translate-y-1/2 md:-right-16 z-20">
         <button 
           (click)="openSettings.emit()"
           class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
@@ -46,8 +46,9 @@ import { FormsModule } from '@angular/forms';
     </header>
 
     <!-- URL Input -->
-    <div class="relative mb-8 flex-shrink-0 w-full max-w-4xl mx-auto">
-      <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+    <div class="relative mb-8 flex-shrink-0 w-full max-w-4xl mx-auto z-10">
+      <!-- Added z-10 to ensure icon stays on top of the input background -->
+      <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
          <svg class="h-5 w-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
          </svg>
@@ -57,12 +58,12 @@ import { FormsModule } from '@angular/forms';
         [value]="url()"
         (input)="onUrlInput($event)"
         placeholder="Paste a YouTube video link here..." 
-        class="w-full bg-gray-800/80 backdrop-blur-sm border-2 border-gray-700 focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-xl py-4 pl-12 pr-12 text-white placeholder-gray-500 transition-all duration-200 shadow-lg text-lg"
+        class="w-full bg-gray-800/80 backdrop-blur-sm border-2 border-gray-700 focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-xl py-4 pl-12 pr-12 text-white placeholder-gray-500 transition-all duration-200 shadow-lg text-lg relative z-0"
       >
       @if (url()) {
         <button 
           (click)="clearUrl.emit()"
-          class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-white cursor-pointer focus:outline-none transition-colors"
+          class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-white cursor-pointer focus:outline-none transition-colors z-20"
           title="Clear link"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">

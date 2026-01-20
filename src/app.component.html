@@ -1,50 +1,128 @@
 
-<main class="min-h-screen bg-gray-900 text-gray-100 font-sans p-4 sm:p-6 lg:p-8 select-none" cdkScrollable>
-  <div class="max-w-7xl mx-auto h-full flex flex-col">
+<main class="min-h-screen bg-gray-900 text-gray-100 font-sans p-4 sm:p-6 lg:p-8 select-none flex flex-col lg:h-screen lg:overflow-hidden h-auto">
+  <div class="max-w-[1600px] mx-auto w-full lg:h-full h-auto flex flex-col">
     
-    <app-header
-      [url]="workspace.youtubeUrl()"
-      (urlChange)="onUrlChange($event)"
-      (clearUrl)="workspace.resetWorkspace()"
-      (openSettings)="isSettingsModalOpen.set(true)"
-    ></app-header>
+    <!-- Header (Non-scrolling on desktop, scrolling on mobile) -->
+    <div class="shrink-0 mb-4">
+      <app-header
+        [url]="workspace.youtubeUrl()"
+        (urlChange)="onUrlChange($event)"
+        (clearUrl)="workspace.resetWorkspace()"
+        (openSettings)="isSettingsModalOpen.set(true)"
+      ></app-header>
+    </div>
 
     @if (!workspace.videoId() && workspace.savedVideos().length > 0) {
-      <app-session-list
-        [videos]="workspace.paginatedVideos()"
-        [currentPage]="workspace.currentPage()"
-        [totalPages]="workspace.totalPages()"
-        [searchQuery]="workspace.searchQuery()"
-        [typeFilter]="workspace.typeFilter()"
-        (searchQueryChange)="workspace.setSearchQuery($event)"
-        (filterTypeChange)="workspace.setTypeFilter($event)"
-        (pageChange)="workspace.currentPage.set($event)"
-        (selectVideo)="loadSavedVideo($event)"
-        (deleteVideo)="openDeleteModal($event)"
-      ></app-session-list>
+      <div class="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+        <app-session-list
+          [videos]="workspace.paginatedVideos()"
+          [currentPage]="workspace.currentPage()"
+          [totalPages]="workspace.totalPages()"
+          [searchQuery]="workspace.searchQuery()"
+          [typeFilter]="workspace.typeFilter()"
+          (searchQueryChange)="workspace.setSearchQuery($event)"
+          (filterTypeChange)="workspace.setTypeFilter($event)"
+          (pageChange)="workspace.currentPage.set($event)"
+          (selectVideo)="loadSavedVideo($event)"
+          (deleteVideo)="openDeleteModal($event)"
+        ></app-session-list>
+      </div>
     }
 
-    <!-- Free Dragging Content Area -->
+    <!-- Content Area -->
     @if (workspace.videoId()) {
-      <div class="relative flex flex-wrap gap-8 items-start w-full h-full p-4">
+      <div class="flex-grow flex flex-col lg:grid lg:grid-cols-3 gap-4 lg:gap-6 min-h-0">
         
-        <app-video-player
-          [videoId]="workspace.videoId()"
-          [title]="workspace.currentVideoTitle()"
-        ></app-video-player>
+        <!-- Left Column (Video + Notes) -->
+        <div 
+          class="lg:col-span-2 flex flex-col gap-4 min-h-0 lg:h-full"
+          [class.hidden]="activeMobileTab() === 'chat' && false" 
+        > 
+        <!-- Note: We keep left column always visible on mobile now because it contains the Video and Tabs. 
+             We toggle the Notes block visibility inside. -->
+          
+          <!-- Video Player Container -->
+          <div class="w-full shrink-0 h-[250px] sm:h-[350px] lg:h-[400px]">
+            <app-video-player
+              class="w-full h-full block"
+              [videoId]="workspace.videoId()"
+              [title]="workspace.currentVideoTitle()"
+            ></app-video-player>
+          </div>
 
-        <app-assistant
-          [notes]="workspace.notes()"
-          [messages]="workspace.messages()"
-          [isThinking]="workspace.isAiThinking()"
-          [error]="workspace.chatError()"
-          [showSummaryButton]="workspace.showSummaryButton()"
-          [currentLanguage]="workspace.currentLanguage()"
-          (notesChange)="workspace.updateNotes($event)"
-          (sendMessage)="workspace.sendMessage($event)"
-          (generateSummary)="workspace.generateSummary()"
-          (openSettings)="isSettingsModalOpen.set(true)"
-        ></app-assistant>
+          <!-- Mobile Tabs Navigation (Draggable) -->
+          <div 
+            cdkDrag
+            cdkDragBoundary="body"
+            class="flex lg:hidden bg-gray-800 p-1 rounded-lg shrink-0 sticky top-0 z-[60] shadow-md items-center gap-1 border border-gray-700 w-full"
+          >
+            <button 
+              (click)="activeMobileTab.set('chat')"
+              class="flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2"
+              [class.bg-gray-700]="activeMobileTab() === 'chat'"
+              [class.text-white]="activeMobileTab() === 'chat'"
+              [class.text-gray-400]="activeMobileTab() !== 'chat'"
+              [class.shadow-sm]="activeMobileTab() === 'chat'"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+              </svg>
+              AI Chat
+            </button>
+            <button 
+              (click)="activeMobileTab.set('notes')"
+              class="flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-2"
+              [class.bg-gray-700]="activeMobileTab() === 'notes'"
+              [class.text-white]="activeMobileTab() === 'notes'"
+              [class.text-gray-400]="activeMobileTab() !== 'notes'"
+              [class.shadow-sm]="activeMobileTab() === 'notes'"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+              </svg>
+              My Notes
+            </button>
+
+            <!-- Drag Handle for Tabs -->
+            <div cdkDragHandle class="px-2 py-2 text-gray-500 hover:text-white cursor-move flex items-center justify-center shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Notes Component -->
+          <!-- Desktop: Flex-grow. Mobile: Fixed height (70vh) to allow scrolling the page -->
+          <div 
+            class="min-h-0 lg:h-full lg:flex-grow h-[70vh] lg:h-auto lg:!flex" 
+            [class.hidden]="activeMobileTab() !== 'notes'"
+          >
+            <app-notes
+              class="w-full h-full block"
+              [notes]="workspace.notes()"
+              (notesChange)="workspace.updateNotes($event)"
+            ></app-notes>
+          </div>
+        </div>
+
+        <!-- Right Column (AI Chat) -->
+        <!-- Desktop: Flex col. Mobile: Fixed height (70vh) -->
+        <div 
+          class="lg:col-span-1 min-h-0 lg:h-full flex flex-col lg:!flex h-[70vh] lg:h-auto" 
+          [class.hidden]="activeMobileTab() !== 'chat'"
+        >
+          <app-assistant
+            class="w-full h-full block"
+            [messages]="workspace.messages()"
+            [isThinking]="workspace.isAiThinking()"
+            [error]="workspace.chatError()"
+            [showSummaryButton]="workspace.showSummaryButton()"
+            [currentLanguage]="workspace.currentLanguage()"
+            (sendMessage)="workspace.sendMessage($event)"
+            (generateSummary)="workspace.generateSummary()"
+            (openSettings)="isSettingsModalOpen.set(true)"
+          ></app-assistant>
+        </div>
 
       </div>
     } @else if (workspace.savedVideos().length === 0) {

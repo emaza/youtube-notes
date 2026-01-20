@@ -65,12 +65,13 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        // Use ./ relative path to avoid strict origin mismatch errors in some cloud environments
+        navigator.serviceWorker.register('./service-worker.js')
           .then(registration => {
             console.log('SW registered: ', registration);
           })
           .catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
+            console.warn('SW registration failed (this is expected in some preview environments): ', registrationError);
           });
       });
     }
