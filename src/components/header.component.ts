@@ -20,7 +20,7 @@ import { FormsModule } from '@angular/forms';
         <div class="absolute -inset-1 bg-gradient-to-r from-red-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
         <!-- Replace the src below with your uploaded image URL -->
         <img 
-          src="https://cdn-icons-png.flaticon.com/512/3670/3670147.png" 
+          src="icon.svg" 
           alt="YouTube Notetaker Logo" 
           class="relative w-20 h-20 sm:w-24 sm:h-24 object-contain filter drop-shadow-2xl transform group-hover:scale-105 transition-transform duration-300 bg-gray-900 rounded-xl p-2 border border-gray-800"
         >
