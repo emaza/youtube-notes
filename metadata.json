@@ -1,5 +1,0 @@
-{
-  "name": "YouTube Video Notetaker",
-  "description": "An application to watch YouTube videos, take notes, and generate AI-powered summaries. Features draggable video and notes panels for a customizable layout.",
-  "requestFramePermissions": []
-}
