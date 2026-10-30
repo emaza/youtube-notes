@@ -2,19 +2,21 @@
 import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { PersistPanelDirective } from '../directives/persist-panel.directive';
 import { FormsModule } from '@angular/forms';
 import { markdownToHtml } from '../utils/markdown';
 
 @Component({
   selector: 'app-notes',
   standalone: true,
-  imports: [CommonModule, DragDropModule, FormsModule],
+  imports: [CommonModule, DragDropModule, FormsModule, PersistPanelDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div 
       cdkDrag
+      [appPersistPanel]="'notes:' + layout()"
       cdkDragBoundary="body"
-      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 flex flex-col group hover:shadow-green-500/20 resize overflow-hidden w-full h-full relative z-50"
+      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 flex flex-col group hover:shadow-green-500/20 resize overflow-hidden w-full h-full relative z-50 min-w-[min(20rem,100%)] min-h-[49px] sm:min-h-[61px]"
     >
       <!-- Header (Drag Handle) -->
       <div cdkDragHandle class="p-3 sm:p-4 bg-gray-900/90 flex items-center justify-between shrink-0 border-b border-gray-700 select-none cursor-move">
@@ -63,6 +65,8 @@ import { markdownToHtml } from '../utils/markdown';
 })
 export class NotesComponent {
   notes = input.required<string>();
+  /** Layout the panel lives in ('video' | 'short'); positions are remembered per layout. */
+  layout = input('video');
   notesChange = output<string>();
   formatted = signal(false);
   toHtml = markdownToHtml;

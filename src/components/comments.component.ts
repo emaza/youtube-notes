@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, input, signal, effect, inject, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { PersistPanelDirective } from '../directives/persist-panel.directive';
 import { YouTubeCommentsService, YouTubeComment, CommentsOrder } from '../services/youtube-comments.service';
 
 interface RepliesState {
@@ -14,13 +15,14 @@ interface RepliesState {
 @Component({
   selector: 'app-comments',
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, PersistPanelDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
       cdkDrag
+      [appPersistPanel]="'comments:' + layout()"
       cdkDragBoundary="body"
-      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 flex flex-col group hover:shadow-red-500/20 resize overflow-hidden w-full h-full relative z-50"
+      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 flex flex-col group hover:shadow-red-500/20 resize overflow-hidden w-full h-full relative z-50 min-w-[min(20rem,100%)] min-h-[49px] sm:min-h-[61px]"
     >
       <!-- Header (Drag Handle) -->
       <div cdkDragHandle class="p-3 sm:p-4 bg-gray-900/90 flex items-center justify-between shrink-0 border-b border-gray-700 select-none cursor-move">
@@ -144,6 +146,8 @@ export class CommentsComponent {
   private commentsService = inject(YouTubeCommentsService);
 
   videoId = input.required<string>();
+  /** Layout the panel lives in ('video' | 'short'); positions are remembered per layout. */
+  layout = input('video');
 
   readonly orderOptions: { value: CommentsOrder; label: string }[] = [
     { value: 'relevance', label: 'Relevantes' },
