@@ -20,6 +20,9 @@ const RATE_LIMIT_PER_DAY = Number(process.env.RATE_LIMIT_PER_DAY) || 200;
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const COMMENTS_PAGE_SIZE = 20;
+// Service worker de la PWA: activo salvo SERVICE_WORKER=false (útil en desarrollo,
+// donde su caché sirve el código anterior en la primera recarga).
+const SERVICE_WORKER = process.env.SERVICE_WORKER !== 'false';
 
 const MAX_MESSAGE_CHARS = 4000;
 const MAX_HISTORY_MESSAGES = 50;
@@ -184,6 +187,12 @@ app.get('/api/comments/replies', commentsLimiter, async (req, res) => {
   if (!isValidPageToken(pageToken)) return res.status(400).json({ error: 'pageToken inválido.' });
 
   await proxyYouTubeComments(res, 'comments', { parentId, pageToken }, item => toComment(item.id, item.snippet, 0));
+});
+
+// Configuración pública que el frontend necesita al arrancar.
+app.get('/api/config', (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.json({ serviceWorker: SERVICE_WORKER });
 });
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'No encontrado' }));
