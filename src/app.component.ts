@@ -6,6 +6,7 @@ import { WorkspaceService } from './services/workspace.service';
 import { SessionListService } from './services/session-list.service';
 import { StorageService, SavedVideoSummary } from './services/storage.service';
 import { PwaService } from './services/pwa.service';
+import { YouTubeSearchService, SearchResult } from './services/youtube-search.service';
 import { ConfirmationModalComponent } from './components/confirmation-modal/confirmation-modal.component';
 import { HeaderComponent } from './components/header/header.component';
 import { SessionListComponent } from './components/session-list/session-list.component';
@@ -14,8 +15,10 @@ import { AssistantComponent } from './components/assistant/assistant.component';
 import { NotesComponent } from './components/notes/notes.component';
 import { SettingsModalComponent } from './components/settings-modal/settings-modal.component';
 import { CommentsComponent } from './components/comments/comments.component';
+import { SearchResultsComponent } from './components/search-results/search-results.component';
 import { PersistPanelDirective } from './directives/persist-panel.directive';
-import { buildVideoUrl } from './utils/youtube';
+import { buildVideoUrl, watchUrl } from './utils/youtube';
+import { SearchFilters, normalizeFilters } from './utils/search';
 import { LANGUAGES } from './utils/languages';
 
 @Component({
@@ -33,6 +36,7 @@ import { LANGUAGES } from './utils/languages';
     NotesComponent,
     SettingsModalComponent,
     CommentsComponent,
+    SearchResultsComponent,
     PersistPanelDirective
   ],
 })
@@ -42,6 +46,7 @@ export class AppComponent {
   sessions = inject(SessionListService);
   storageService = inject(StorageService);
   pwaService = inject(PwaService);
+  search = inject(YouTubeSearchService);
 
   // Local UI State
   isDeleteModalOpen = signal(false);
@@ -61,6 +66,27 @@ export class AppComponent {
 
   onUrlChange(newUrl: string) {
     this.workspace.loadVideo(newUrl);
+  }
+
+  /** Logo and the input's clear button: closes the video and the search. */
+  goHome() {
+    this.search.clear(false);
+    this.workspace.resetWorkspace();
+  }
+
+  onSearch(filters: SearchFilters) {
+    if (!normalizeFilters(filters)) return;
+    this.workspace.closeVideo();
+    this.search.search(filters);
+  }
+
+  openSearchResult(result: SearchResult) {
+    this.workspace.loadVideo(watchUrl(result.videoId), result.title);
+  }
+
+  saveSearchResult(result: SearchResult) {
+    const channelUrl = result.channelId ? `https://www.youtube.com/channel/${result.channelId}` : '';
+    this.sessions.save(result.videoId, result.title, result.channelTitle, channelUrl);
   }
 
   loadSavedVideo(summary: SavedVideoSummary) {

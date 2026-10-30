@@ -2,7 +2,7 @@
 
   <!-- Logo Section -->
   <div 
-    (click)="clearUrl.emit()"
+    (click)="clear()"
     class="relative group shrink-0 cursor-pointer"
     title="Go Home"
   >
@@ -18,7 +18,7 @@
   <!-- Text Section -->
   <div class="text-center md:text-left z-10">
     <h1 
-      (click)="clearUrl.emit()"
+      (click)="clear()"
       class="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-gray-200 tracking-tight drop-shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
     >
       YouTube AI Notes
@@ -41,30 +41,68 @@
   </div>
 </header>
 
-<!-- URL Input -->
-<div class="relative mb-8 flex-shrink-0 w-full max-w-4xl mx-auto z-10">
-  <!-- Added z-10 to ensure icon stays on top of the input background -->
-  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-     <svg class="h-5 w-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
-     </svg>
-  </div>
-  <input 
-    type="text" 
-    [value]="url()"
-    (input)="onUrlInput($event)"
-    placeholder="Paste a YouTube video link here..." 
-    class="w-full bg-gray-800/80 backdrop-blur-sm border-2 border-gray-700 focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-xl py-4 pl-12 pr-12 text-white placeholder-gray-500 transition-all duration-200 shadow-lg text-lg relative z-0"
-  >
-  @if (url()) {
-    <button 
-      (click)="clearUrl.emit()"
-      class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-white cursor-pointer focus:outline-none transition-colors z-20"
-      title="Clear link"
+<!-- URL / Search Input -->
+<div #searchBox class="relative mb-8 flex-shrink-0 w-full max-w-4xl mx-auto z-[70]">
+  <div class="relative">
+    <!-- Simple search -->
+    <button
+      type="button"
+      (click)="submitSimpleSearch()"
+      class="absolute inset-y-0 left-0 pl-4 pr-2 flex items-center text-gray-500 hover:text-white focus:outline-none focus:text-white transition-colors z-10"
+      title="Search videos"
+      aria-label="Search videos"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
     </button>
+    <input 
+      type="text" 
+      [value]="text()"
+      (input)="onInput($event)"
+      (keydown.enter)="submitSimpleSearch()"
+      placeholder="Paste a YouTube link or search videos..." 
+      class="w-full bg-gray-800/80 backdrop-blur-sm border-2 border-gray-700 focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-xl py-4 pl-14 pr-24 text-white placeholder-gray-500 transition-all duration-200 shadow-lg text-lg relative z-0"
+    >
+    <div class="absolute inset-y-0 right-0 pr-3 flex items-center gap-1 z-10">
+      @if (text() || searchFilters()) {
+        <button 
+          type="button"
+          (click)="clear()"
+          class="p-1 text-gray-500 hover:text-white focus:outline-none focus:text-white transition-colors"
+          title="Clear"
+          aria-label="Clear"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      }
+      <!-- Advanced search -->
+      <button
+        type="button"
+        (click)="isAdvancedOpen.set(!isAdvancedOpen())"
+        class="p-1.5 rounded-full transition-colors focus:outline-none"
+        [ngClass]="isAdvancedOpen() ? 'text-white bg-gray-700' : 'text-gray-500 hover:text-white focus:text-white'"
+        title="Advanced search"
+        aria-label="Advanced search"
+        [attr.aria-expanded]="isAdvancedOpen()"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  @if (isAdvancedOpen()) {
+    <div class="absolute left-0 right-0 top-full mt-2">
+      <app-advanced-search
+        [filters]="searchFilters()"
+        [text]="text()"
+        (search)="submitAdvancedSearch($event)"
+        (close)="isAdvancedOpen.set(false)"
+      ></app-advanced-search>
+    </div>
   }
 </div>

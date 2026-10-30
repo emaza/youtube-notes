@@ -23,7 +23,9 @@ export interface SavedVideoSummary {
 }
 
 export interface AppSettings {
-  language: string;
+  language?: string;
+  /** Max searches kept in the local search cache (0 disables it). */
+  searchCacheSize?: number;
 }
 
 @Injectable({
@@ -39,9 +41,10 @@ export class StorageService {
 
   // --- APP SETTINGS ---
 
+  /** Merges the given settings into the saved ones. */
   saveAppSettings(settings: AppSettings): void {
     try {
-      localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(settings));
+      localStorage.setItem(this.SETTINGS_KEY, JSON.stringify({ ...this.getAppSettings(), ...settings }));
     } catch (e) {
       console.error('Error saving settings', e);
     }

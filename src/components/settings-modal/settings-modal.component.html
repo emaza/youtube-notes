@@ -62,6 +62,30 @@
            </div>
         }
 
+        <!-- Search Cache -->
+        <div class="border-t border-gray-700 pt-4">
+          <label for="searchCacheSize" class="block text-sm font-medium text-gray-400 mb-2">Cached searches</label>
+          <div class="flex items-center gap-2">
+            <input
+              id="searchCacheSize"
+              type="number"
+              min="0"
+              [max]="maxSearchCacheSize"
+              [value]="searchCache.maxSearches()"
+              (change)="onSearchCacheSizeChange($event)"
+              class="w-24 bg-gray-700 border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+            >
+            <button
+              (click)="clearSearchCache()"
+              [disabled]="searchCache.count() === 0"
+              class="flex-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-200 px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Clear search cache ({{ searchCache.count() }})
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-gray-500">Recent searches kept on this device so going back or reloading doesn't spend YouTube API quota. 0 disables the cache.</p>
+        </div>
+
         <div class="border-t border-gray-700 pt-4">
           <p class="text-sm text-gray-400 mb-4">Manage your saved data.</p>
 

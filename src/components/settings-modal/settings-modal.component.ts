@@ -2,6 +2,7 @@
 import { Component, ChangeDetectionStrategy, input, output, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StorageService } from '../../services/storage.service';
+import { SearchCacheService, MAX_SEARCH_CACHE_SIZE } from '../../services/search-cache.service';
 
 @Component({
   selector: 'app-settings-modal',
@@ -12,6 +13,8 @@ import { StorageService } from '../../services/storage.service';
 })
 export class SettingsModalComponent {
   private storageService = inject(StorageService);
+  searchCache = inject(SearchCacheService);
+  readonly maxSearchCacheSize = MAX_SEARCH_CACHE_SIZE;
 
   isOpen = input.required<boolean>();
   currentLanguage = input.required<string>();
@@ -44,6 +47,18 @@ export class SettingsModalComponent {
   onLanguageChange(event: Event) {
     const select = event.target as HTMLSelectElement;
     this.languageChange.emit(select.value);
+  }
+
+  onSearchCacheSizeChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.searchCache.setMaxSearches(Number(input.value));
+    input.value = String(this.searchCache.maxSearches());
+    this.storageStats.set(this.storageService.getStorageUsage());
+  }
+
+  clearSearchCache() {
+    this.searchCache.clear();
+    this.storageStats.set(this.storageService.getStorageUsage());
   }
 
   onFileSelected(event: Event) {

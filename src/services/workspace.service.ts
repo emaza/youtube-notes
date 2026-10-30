@@ -78,14 +78,23 @@ export class WorkspaceService {
 
   // --- Navigation ---
 
-  /** Opens the video in the URL (?v=&type=), or the session list when there is none. */
+  /**
+   * Opens the video in the URL (?v=&type=); when there is none, closes the open
+   * video without touching the URL (it may hold a search).
+   */
   private loadFromUrl() {
     const fromUrl = this.browserUrl.read();
     if (fromUrl) {
       this.loadVideo(buildVideoUrl(fromUrl.videoId, fromUrl.type), undefined, fromUrl.type);
     } else if (this.videoId()) {
-      this.resetWorkspace();
+      this.closeVideo();
     }
+  }
+
+  /** Closes the open video leaving the browser URL as it is. */
+  closeVideo() {
+    this.youtubeUrl.set('');
+    this.resetWorkspace(false);
   }
 
   async loadVideo(url: string, knownTitle?: string, knownType?: VideoType) {

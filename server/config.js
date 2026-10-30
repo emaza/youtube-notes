@@ -8,7 +8,7 @@ export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 export const APP_PASSWORD = process.env.APP_PASSWORD || '';
 export const RATE_LIMIT_PER_MINUTE = Number(process.env.RATE_LIMIT_PER_MINUTE) || 10;
 export const RATE_LIMIT_PER_DAY = Number(process.env.RATE_LIMIT_PER_DAY) || 200;
-// Opcional: sin ella la sección de comentarios queda desactivada.
+// Opcional: sin ella los comentarios y la búsqueda de vídeos quedan desactivados.
 export const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
 // Service worker de la PWA: activo salvo SERVICE_WORKER=false (útil en desarrollo,
 // donde su caché sirve el código anterior en la primera recarga).

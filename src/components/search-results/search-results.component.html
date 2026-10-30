@@ -1,0 +1,166 @@
+<div class="mb-10 animate-fade-in">
+
+  <!-- Controls Header -->
+  <div class="flex flex-col gap-3 mb-6">
+    <div class="flex flex-wrap items-center gap-3">
+      <h2 class="text-xl font-bold text-gray-300 flex items-center gap-2 min-w-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        @if (query()) {
+          <span class="truncate">Results for <span class="text-white">“{{ query() }}”</span></span>
+        } @else {
+          <span>Search results</span>
+        }
+      </h2>
+
+      <button
+        (click)="clearSearch.emit()"
+        class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-1 rounded-full flex items-center gap-1 transition-colors"
+        title="Clear the search and go back to your saved sessions"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        <span>Clear search</span>
+      </button>
+
+      @if (page(); as p) {
+        <span class="text-xs text-gray-500 sm:ml-auto">
+          About {{ p.totalResults | number }} results
+          @if (fromCache()) {
+            · <span class="text-gray-400" title="Loaded from the local search cache, no API quota used">from cache</span>
+          }
+        </span>
+      }
+    </div>
+
+    @if (filterChips().length > 0) {
+      <div class="flex flex-wrap gap-2">
+        @for (chip of filterChips(); track chip) {
+          <span class="bg-gray-800 border border-gray-700 text-gray-300 text-[11px] px-2 py-0.5 rounded-full">{{ chip }}</span>
+        }
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
+        <div class="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 animate-pulse">
+          <div class="h-36 bg-gray-700/60"></div>
+          <div class="p-3 space-y-2">
+            <div class="h-3 bg-gray-700 rounded w-5/6"></div>
+            <div class="h-3 bg-gray-700 rounded w-2/3"></div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <div class="text-center py-12 bg-red-900/10 rounded-lg border border-red-800/50">
+      <p class="text-red-300">{{ error() }}</p>
+    </div>
+  } @else if (page(); as p) {
+    @if (p.results.length === 0) {
+      <div class="text-center py-12 bg-gray-800/50 rounded-lg border border-gray-700/50">
+        <p class="text-gray-400">No videos found. Try other words or fewer filters.</p>
+      </div>
+    }
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      @for (result of p.results; track result.videoId) {
+        <div
+          (click)="openVideo.emit(result)"
+          class="bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 cursor-pointer hover:border-red-500 hover:shadow-red-500/20 transition-all duration-200 group relative flex flex-col h-full"
+        >
+          <!-- Thumbnail -->
+          <div class="relative h-36 w-full bg-black overflow-hidden shrink-0">
+            <img
+              [src]="result.thumbnail || 'https://i.ytimg.com/vi/' + result.videoId + '/mqdefault.jpg'"
+              alt="Video Thumbnail"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            >
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60"></div>
+
+            @if (result.liveBroadcastContent !== 'none') {
+              <div class="absolute top-2 left-2 z-20 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-md uppercase">
+                {{ result.liveBroadcastContent === 'live' ? 'Live' : 'Upcoming' }}
+              </div>
+            }
+
+            @if (result.channelTitle) {
+              <div class="absolute bottom-2 left-2 right-2">
+                <span class="inline-flex items-center gap-1 bg-black/70 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full border border-gray-600/50 truncate max-w-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-red-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="truncate">{{ result.channelTitle }}</span>
+                </span>
+              </div>
+            }
+          </div>
+
+          <!-- Content -->
+          <div class="p-3 flex flex-col flex-grow">
+            <h3 class="font-bold text-sm text-gray-100 line-clamp-2 min-h-[2.5em] mb-2" [title]="result.title">
+              {{ result.title }}
+            </h3>
+            <div class="mt-auto pt-2 border-t border-gray-700/50">
+              <p class="text-[10px] text-gray-500">
+                Published: {{ result.publishedAt | date:'mediumDate' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Save Button (same place as the saved sessions' delete button) -->
+          @if (savedIds().has(result.videoId)) {
+            <span
+              class="absolute top-2 right-2 bg-green-600 text-white p-1.5 rounded-full shadow-sm z-10"
+              title="Saved in your sessions"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+              </svg>
+            </span>
+          } @else {
+            <button
+              (click)="saveVideo.emit(result); $event.stopPropagation()"
+              class="absolute top-2 right-2 bg-purple-600 hover:bg-purple-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shadow-sm z-10"
+              title="Save to your sessions"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Pagination Controls -->
+    @if (p.prevPageToken || p.nextPageToken) {
+      <div class="flex justify-center items-center gap-4 mt-6">
+        <button
+          (click)="previousPage.emit()"
+          [disabled]="!p.prevPageToken"
+          class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Previous
+        </button>
+
+        <span class="text-gray-400 text-sm">
+          Page <span class="text-white font-bold">{{ pageNumber() }}</span>
+        </span>
+
+        <button
+          (click)="nextPage.emit()"
+          [disabled]="!p.nextPageToken"
+          class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Next
+        </button>
+      </div>
+    }
+  }
+</div>
