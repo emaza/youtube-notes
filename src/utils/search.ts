@@ -75,6 +75,7 @@ export function toApiParams(filters: SearchFilters): Record<string, string> {
     const value = filters[key];
     if (value && !WORD_KEYS.includes(key)) params[key] = value;
   }
+  params['maxResults'] ??= DEFAULT_MAX_RESULTS;
   const q = buildQuery(filters);
   if (q) params['q'] = q;
   // Whole days, in UTC.
@@ -124,7 +125,11 @@ export const VIDEO_FILTER_OPTIONS: Partial<Record<SearchFilterKey, SelectOption[
   ]
 };
 
-export const MAX_RESULTS_OPTIONS = ['10', '25', '50'];
+/** Results per page when the search doesn't set `maxResults` (kept out of the URL). */
+export const DEFAULT_MAX_RESULTS = '8';
+export const MAX_RESULTS_OPTIONS: SelectOption[] = ['4', '8', '12', '16'].map(size => (
+  size === DEFAULT_MAX_RESULTS ? { value: '', label: `${size} (default)` } : { value: size, label: size }
+));
 export const RADIUS_UNITS = ['km', 'mi', 'm', 'ft'];
 
 const REGION_CODES = [
