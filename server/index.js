@@ -21,7 +21,7 @@ app.get('/healthz', (_req, res) => res.send('ok'));
 if (APP_PASSWORD) app.use(basicAuth(APP_PASSWORD));
 
 app.use('/api', chatRouter, commentsRouter, searchRouter, configRouter);
-app.use('/api', (_req, res) => res.status(404).json({ error: 'No encontrado' }));
+app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
 serveApp(app);
 

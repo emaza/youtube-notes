@@ -21,8 +21,6 @@ export class SpeechControlsComponent {
   text = input.required<string>();
   /** Settings language, used for the reading voice. */
   language = input('es');
-  /** Title of the listen button. */
-  label = input('Escuchar respuesta');
   disabled = input(false);
 
   speech = inject(SpeechService);
