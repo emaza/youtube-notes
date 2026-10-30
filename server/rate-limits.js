@@ -1,7 +1,7 @@
 import rateLimit from 'express-rate-limit';
 import { RATE_LIMIT_PER_MINUTE, RATE_LIMIT_PER_DAY } from './config.js';
 
-const rateLimitMessage = { error: 'Demasiadas peticiones. Espera un momento e inténtalo de nuevo.' };
+const rateLimitMessage = { error: 'Too many requests. Wait a moment and try again.' };
 
 // Peticiones a la IA por IP: por minuto y por día.
 export const chatLimiters = [

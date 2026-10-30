@@ -64,7 +64,7 @@ chatRouter.post('/chat', ...chatLimiters, express.json({ limit: '300kb' }), asyn
     } catch (error) {
       if (abort.signal.aborted) return;
       console.error('Error durante el streaming de Gemini:', error?.message || error);
-      res.write(JSON.stringify({ type: 'error', error: 'La respuesta de la IA se interrumpió. Por favor intenta de nuevo.' }) + '\n');
+      res.write(JSON.stringify({ type: 'error', error: 'The AI response was interrupted. Please try again.' }) + '\n');
     }
     res.end();
   } catch (error) {
@@ -74,35 +74,35 @@ chatRouter.post('/chat', ...chatLimiters, express.json({ limit: '300kb' }), asyn
     const status = error?.status === 429 ? 429 : 502;
     res.status(status).json({
       error: status === 429
-        ? 'La cuota de la IA se ha agotado temporalmente. Inténtalo más tarde.'
-        : 'Error al conectar con la IA. Por favor intenta de nuevo.'
+        ? 'The AI quota is temporarily used up. Try again later.'
+        : 'Could not connect to the AI. Please try again.'
     });
   }
 });
 
 function validateChatRequest(body) {
-  if (!body || typeof body !== 'object') return 'Cuerpo de la petición inválido.';
+  if (!body || typeof body !== 'object') return 'Invalid request body.';
 
   const { videoId, videoTitle = '', language = 'es', history = [], message } = body;
 
-  if (typeof videoId !== 'string' || !VIDEO_ID_RE.test(videoId)) return 'videoId inválido.';
-  if (typeof videoTitle !== 'string' || videoTitle.length > 300) return 'Título inválido.';
+  if (typeof videoId !== 'string' || !VIDEO_ID_RE.test(videoId)) return 'Invalid videoId.';
+  if (typeof videoTitle !== 'string' || videoTitle.length > 300) return 'Invalid title.';
   if (typeof language !== 'string' || !Object.hasOwn(LANGUAGES, language)) return 'Idioma no soportado.';
   if (typeof message !== 'string' || !message.trim() || message.length > MAX_MESSAGE_CHARS) {
     return `El mensaje debe tener entre 1 y ${MAX_MESSAGE_CHARS} caracteres.`;
   }
-  if (!Array.isArray(history)) return 'Historial inválido.';
+  if (!Array.isArray(history)) return 'Invalid history.';
 
   // Se recorta el historial a los mensajes más recientes para acotar el coste.
   const recent = history.slice(-MAX_HISTORY_MESSAGES);
   let totalChars = 0;
   for (const m of recent) {
     if (!m || (m.role !== 'user' && m.role !== 'model') || typeof m.text !== 'string') {
-      return 'Historial inválido.';
+      return 'Invalid history.';
     }
     totalChars += m.text.length;
   }
-  if (totalChars > MAX_HISTORY_CHARS) return 'El historial de la conversación es demasiado largo.';
+  if (totalChars > MAX_HISTORY_CHARS) return 'The conversation history is too long.';
 
   return {
     videoId,
