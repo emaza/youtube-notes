@@ -1,8 +1,9 @@
 
-import { Component, ChangeDetectionStrategy, input, ViewChild, ElementRef, effect, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, ViewChild, ElementRef, effect, signal, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../services/gemini.service';
 import { markdownToHtml } from '../utils/markdown';
+import { SpeechService } from '../services/speech.service';
 
 @Component({
   selector: 'app-chat-list',
@@ -29,7 +30,7 @@ import { markdownToHtml } from '../utils/markdown';
       }
 
       @for (msg of messages(); track $index) {
-        <div class="flex flex-col gap-1" [class.items-end]="msg.role === 'user'" [class.items-start]="msg.role === 'model'">
+        <div class="flex flex-col gap-1" data-message [class.items-end]="msg.role === 'user'" [class.items-start]="msg.role === 'model'">
           <div 
             class="max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-md group relative"
             [class.bg-purple-600]="msg.role === 'user'"
@@ -39,6 +40,49 @@ import { markdownToHtml } from '../utils/markdown';
             [class.rounded-br-none]="msg.role === 'user'"
             [class.rounded-bl-none]="msg.role === 'model'"
           >
+            @if (msg.role === 'model' && !(isStreaming() && $last) && speech.supported) {
+              <div class="-mt-1 -ml-1.5 mb-2 pb-1 border-b border-gray-600/50 flex items-center gap-1">
+                @if (speech.speaking() === msg) {
+                  @if (speech.paused()) {
+                    <button
+                      (click)="speech.resume()"
+                      class="p-1.5 rounded-full text-white bg-gray-600/50 hover:bg-gray-600 transition-colors"
+                      title="Continuar lectura"
+                      aria-label="Continuar lectura"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </button>
+                  } @else {
+                    <button
+                      (click)="speech.pause()"
+                      class="p-1.5 rounded-full text-white bg-gray-600/50 hover:bg-gray-600 transition-colors"
+                      title="Pausar lectura"
+                      aria-label="Pausar lectura"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </button>
+                  }
+                  <button
+                    (click)="speech.stop()"
+                    class="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-600/50 transition-colors"
+                    title="Detener lectura"
+                    aria-label="Detener lectura"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
+                  </button>
+                } @else {
+                  <button
+                    (click)="speech.speak(msg, msg.text, language())"
+                    class="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-600/50 transition-colors"
+                    title="Escuchar respuesta"
+                    aria-label="Escuchar respuesta"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                  </button>
+                }
+              </div>
+            }
+
             @if (msg.role === 'model' && !(isStreaming() && $last) && !showRaw().has(msg)) {
               <div [innerHTML]="toHtml(msg.text)" class="markdown-body select-text cursor-text"></div>
             } @else {
@@ -113,6 +157,10 @@ export class ChatListComponent {
   isThinking = input.required<boolean>();
   isStreaming = input.required<boolean>();
   error = input.required<string | null>();
+  /** Settings language, used for the reading voice. */
+  language = input('es');
+
+  speech = inject(SpeechService);
 
   // State to track which message was just copied
   copiedIndex = signal<number | null>(null);
@@ -120,15 +168,31 @@ export class ChatListComponent {
   @ViewChild('chatContainer') chatContainer!: ElementRef;
 
   constructor() {
-    // Auto-scroll effect
+    // Stop reading when the chat goes away (e.g. the video is closed).
+    inject(DestroyRef).onDestroy(() => this.speech.stop());
+
+    // Auto-scroll: after a question, go to the bottom (question + "thinking");
+    // when a new AI answer appears, show its start at the top and stop following
+    // the stream, so the beginning and the audio buttons stay in view.
+    let previousCount = 0;
     effect(() => {
-        const msgs = this.messages();
-        const thinking = this.isThinking(); // Track thinking to scroll when it starts
-        if (this.chatContainer) {
-            setTimeout(() => {
-                this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
-            }, 50);
+      const msgs = this.messages();
+      const thinking = this.isThinking();
+      const isNewMessage = msgs.length !== previousCount;
+      previousCount = msgs.length;
+      if (!this.chatContainer) return;
+
+      setTimeout(() => {
+        const container: HTMLElement = this.chatContainer.nativeElement;
+        if (thinking || msgs.at(-1)?.role === 'user') {
+          container.scrollTop = container.scrollHeight;
+        } else if (isNewMessage) {
+          const last = Array.from(container.querySelectorAll<HTMLElement>('[data-message]')).at(-1);
+          if (last) {
+            container.scrollTop += last.getBoundingClientRect().top - container.getBoundingClientRect().top - 16;
+          }
         }
+      }, 50);
     });
   }
 

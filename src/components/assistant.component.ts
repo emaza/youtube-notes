@@ -66,6 +66,7 @@ import { ChatListComponent } from './chat-list.component';
           [isThinking]="isThinking()"
           [isStreaming]="isStreaming()"
           [error]="error()"
+          [language]="currentLanguage()"
         ></app-chat-list>
 
         <!-- Input Area -->
