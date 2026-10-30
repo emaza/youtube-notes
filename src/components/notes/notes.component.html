@@ -13,12 +13,13 @@
       My Notes
     </h2>
     <div class="flex items-center gap-2 shrink-0">
+        <app-speech-controls [owner]="this" [text]="notes()" [language]="language()" label="Escuchar notas" [disabled]="!notes().trim()" />
         <button
           (click)="formatted.set(!formatted())"
           (pointerdown)="$event.stopPropagation()"
           class="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-700/70 cursor-pointer"
         >
-          {{ formatted() ? 'Ver Markdown' : 'Formatear respuesta' }}
+          {{ formatted() ? 'Ver Markdown' : 'Ver formateado' }}
         </button>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />

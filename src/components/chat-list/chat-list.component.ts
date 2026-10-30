@@ -4,11 +4,12 @@ import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../../services/gemini.service';
 import { markdownToHtml } from '../../utils/markdown';
 import { SpeechService } from '../../services/speech.service';
+import { SpeechControlsComponent } from '../speech-controls/speech-controls.component';
 
 @Component({
   selector: 'app-chat-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SpeechControlsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host {

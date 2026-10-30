@@ -21,44 +21,7 @@
       >
         @if (msg.role === 'model' && !(isStreaming() && $last) && speech.supported) {
           <div class="-mt-1 -ml-1.5 mb-2 pb-1 border-b border-gray-600/50 flex items-center gap-1">
-            @if (speech.speaking() === msg) {
-              @if (speech.paused()) {
-                <button
-                  (click)="speech.resume()"
-                  class="p-1.5 rounded-full text-white bg-gray-600/50 hover:bg-gray-600 transition-colors"
-                  title="Continuar lectura"
-                  aria-label="Continuar lectura"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </button>
-              } @else {
-                <button
-                  (click)="speech.pause()"
-                  class="p-1.5 rounded-full text-white bg-gray-600/50 hover:bg-gray-600 transition-colors"
-                  title="Pausar lectura"
-                  aria-label="Pausar lectura"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </button>
-              }
-              <button
-                (click)="speech.stop()"
-                class="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-600/50 transition-colors"
-                title="Detener lectura"
-                aria-label="Detener lectura"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
-              </button>
-            } @else {
-              <button
-                (click)="speech.speak(msg, msg.text, language())"
-                class="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-600/50 transition-colors"
-                title="Escuchar respuesta"
-                aria-label="Escuchar respuesta"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-              </button>
-            }
+            <app-speech-controls [owner]="msg" [text]="msg.text" [language]="language()" />
           </div>
         }
 
@@ -74,7 +37,7 @@
               (click)="toggleRaw(msg)"
               class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-600/50"
             >
-              {{ showRaw().has(msg) ? 'Formatear respuesta' : 'Ver Markdown' }}
+              {{ showRaw().has(msg) ? 'Ver formateado' : 'Ver Markdown' }}
             </button>
             <button 
               (click)="copyToClipboard(msg.text, $index)" 

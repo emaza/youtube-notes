@@ -152,6 +152,7 @@
               [class.hidden]="activeMobileTab() !== 'notes'"
               [notes]="workspace.notes()"
               [layout]="layout()"
+              [language]="workspace.currentLanguage()"
               (notesChange)="workspace.updateNotes($event)"
             ></app-notes>
 

@@ -135,9 +135,8 @@
 
       <label for="as-max" class="text-gray-400">Results per page</label>
       <select id="as-max" name="maxResults" [(ngModel)]="form.maxResults" class="as-field sm:w-40">
-        <option value="">5 (default)</option>
-        @for (size of maxResultsOptions; track size) {
-          <option [value]="size">{{ size }}</option>
+        @for (size of maxResultsOptions; track size.value) {
+          <option [value]="size.value">{{ size.label }}</option>
         }
       </select>
     </div>
