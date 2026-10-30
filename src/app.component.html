@@ -12,17 +12,17 @@
       ></app-header>
     </div>
 
-    @if (!workspace.videoId() && workspace.savedVideos().length > 0) {
+    @if (!workspace.videoId() && sessions.savedVideos().length > 0) {
       <div class="flex-grow overflow-y-auto pr-2 custom-scrollbar">
         <app-session-list
-          [videos]="workspace.paginatedVideos()"
-          [currentPage]="workspace.currentPage()"
-          [totalPages]="workspace.totalPages()"
-          [searchQuery]="workspace.searchQuery()"
-          [typeFilter]="workspace.typeFilter()"
-          (searchQueryChange)="workspace.setSearchQuery($event)"
-          (filterTypeChange)="workspace.setTypeFilter($event)"
-          (pageChange)="workspace.currentPage.set($event)"
+          [videos]="sessions.paginatedVideos()"
+          [currentPage]="sessions.currentPage()"
+          [totalPages]="sessions.totalPages()"
+          [searchQuery]="sessions.searchQuery()"
+          [typeFilter]="sessions.typeFilter()"
+          (searchQueryChange)="sessions.setSearchQuery($event)"
+          (filterTypeChange)="sessions.setTypeFilter($event)"
+          (pageChange)="sessions.currentPage.set($event)"
           (selectVideo)="loadSavedVideo($event)"
           (deleteVideo)="openDeleteModal($event)"
         ></app-session-list>
@@ -166,7 +166,7 @@
         </div>
 
       </div>
-    } @else if (workspace.savedVideos().length === 0) {
+    } @else if (sessions.savedVideos().length === 0) {
       <div class="text-center py-16">
         <svg class="mx-auto h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
