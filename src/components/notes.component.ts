@@ -1,8 +1,9 @@
 
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
+import { markdownToHtml } from '../utils/markdown';
 
 @Component({
   selector: 'app-notes',
@@ -24,6 +25,13 @@ import { FormsModule } from '@angular/forms';
           My Notes
         </h2>
         <div class="flex items-center gap-2 shrink-0">
+            <button
+              (click)="formatted.set(!formatted())"
+              (pointerdown)="$event.stopPropagation()"
+              class="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-700/70 cursor-pointer"
+            >
+              {{ formatted() ? 'Ver Markdown' : 'Formatear respuesta' }}
+            </button>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
             </svg>
@@ -32,12 +40,16 @@ import { FormsModule } from '@angular/forms';
       
       <!-- Notes Content -->
       <div class="flex-grow flex flex-col bg-gray-900/40 relative min-h-0">
-        <textarea 
+        @if (formatted()) {
+          <div [innerHTML]="toHtml(notes())" class="markdown-body w-full h-full overflow-y-auto p-4 text-gray-200 select-text"></div>
+        } @else {
+        <textarea
           [value]="notes()"
           (input)="onNotesInput($event)"
           placeholder="Type your thoughts here..."
           class="w-full h-full bg-transparent border-none focus:ring-0 p-4 text-gray-200 placeholder-gray-500 resize-none text-base leading-relaxed selection:bg-green-500/30 outline-none"
         ></textarea>
+        }
       </div>
       
       <!-- Footer Resize Handle -->
@@ -52,6 +64,8 @@ import { FormsModule } from '@angular/forms';
 export class NotesComponent {
   notes = input.required<string>();
   notesChange = output<string>();
+  formatted = signal(false);
+  toHtml = markdownToHtml;
 
   onNotesInput(event: Event) {
     const input = event.target as HTMLTextAreaElement;
