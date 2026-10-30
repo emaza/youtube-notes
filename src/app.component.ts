@@ -13,6 +13,7 @@ import { AssistantComponent } from './components/assistant.component';
 import { NotesComponent } from './components/notes.component';
 import { SettingsModalComponent } from './components/settings-modal.component';
 import { CommentsComponent } from './components/comments.component';
+import { PersistPanelDirective } from './directives/persist-panel.directive';
 
 @Component({
   selector: 'app-root',
@@ -28,7 +29,8 @@ import { CommentsComponent } from './components/comments.component';
     AssistantComponent,
     NotesComponent,
     SettingsModalComponent,
-    CommentsComponent
+    CommentsComponent,
+    PersistPanelDirective
   ],
 })
 export class AppComponent {
@@ -46,6 +48,7 @@ export class AppComponent {
   // Mobile Tabs State (on desktop chat, notes and comments are all visible)
   activeMobileTab = signal<'chat' | 'notes' | 'comments'>('chat');
   isShort = computed(() => this.workspace.currentVideoType() === 'short');
+  layout = computed(() => this.isShort() ? 'short' : 'video');
   
   // Constants
   availableLanguages = [

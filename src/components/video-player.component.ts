@@ -2,18 +2,20 @@
 import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { PersistPanelDirective } from '../directives/persist-panel.directive';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-video-player',
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, PersistPanelDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div 
       cdkDrag
+      [appPersistPanel]="isShort() ? 'video:short' : 'video:video'"
       cdkDragBoundary="body"
-      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 overflow-hidden group hover:shadow-purple-500/20 resize flex flex-col w-full relative z-30"
+      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 overflow-hidden group hover:shadow-purple-500/20 resize flex flex-col w-full relative z-30 min-w-[min(20rem,100%)] min-h-[49px] sm:min-h-[61px]"
       [class.h-full]="!isShort()"
     >
       <!-- Header (Drag Handle) -->

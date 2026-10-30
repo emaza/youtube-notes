@@ -2,6 +2,7 @@
 import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { PersistPanelDirective } from '../directives/persist-panel.directive';
 import { FormsModule } from '@angular/forms';
 import { ChatMessage } from '../services/gemini.service';
 import { ChatListComponent } from './chat-list.component';
@@ -9,13 +10,14 @@ import { ChatListComponent } from './chat-list.component';
 @Component({
   selector: 'app-assistant',
   standalone: true,
-  imports: [CommonModule, DragDropModule, FormsModule, ChatListComponent],
+  imports: [CommonModule, DragDropModule, FormsModule, ChatListComponent, PersistPanelDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div 
       cdkDrag
+      [appPersistPanel]="'chat:' + layout()"
       cdkDragBoundary="body"
-      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 flex flex-col group hover:shadow-pink-500/20 resize overflow-hidden w-full h-full relative z-40"
+      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 flex flex-col group hover:shadow-pink-500/20 resize overflow-hidden w-full h-full relative z-40 min-w-[min(20rem,100%)] min-h-[49px] sm:min-h-[61px]"
     >
       <!-- Header (Drag Handle) -->
       <div cdkDragHandle class="p-3 sm:p-4 bg-gray-900/90 flex items-center justify-between shrink-0 border-b border-gray-700 select-none cursor-move">
@@ -102,6 +104,8 @@ import { ChatListComponent } from './chat-list.component';
 })
 export class AssistantComponent {
   messages = input.required<ChatMessage[]>();
+  /** Layout the panel lives in ('video' | 'short'); positions are remembered per layout. */
+  layout = input('video');
   isThinking = input.required<boolean>();
   isStreaming = input.required<boolean>();
   error = input.required<string | null>();
