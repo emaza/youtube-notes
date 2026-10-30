@@ -69,6 +69,7 @@ GEMINI_API_KEY=... APP_PASSWORD=... npm start   # http://localhost:8080
 | `RATE_LIMIT_PER_DAY` | no | `200` | Peticiones a la IA por IP y día |
 | `TRUST_PROXY` | no | `1` | Nº de proxies delante del servidor (para obtener la IP real) |
 | `PORT` | no | `8080` | Puerto |
+| `SERVICE_WORKER` | no | `true` | Con `false` no se instala el service worker de la PWA y se elimina si ya estaba instalado. Recomendado en desarrollo: su caché sirve el código anterior en la primera recarga |
 
 ### Despliegue con Docker (p. ej. Google Cloud Run)
 
