@@ -1,5 +1,5 @@
 
-import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { WorkspaceService } from './services/workspace.service';
@@ -45,6 +45,7 @@ export class AppComponent {
   
   // Mobile Tabs State (on desktop chat, notes and comments are all visible)
   activeMobileTab = signal<'chat' | 'notes' | 'comments'>('chat');
+  isShort = computed(() => this.workspace.currentVideoType() === 'short');
   
   // Constants
   availableLanguages = [
