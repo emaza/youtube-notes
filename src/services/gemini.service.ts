@@ -1,7 +1,5 @@
 
-import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { Injectable } from '@angular/core';
 
 export interface ChatMessage {
   role: 'user' | 'model';
@@ -24,7 +22,6 @@ interface ChatContext {
   providedIn: 'root'
 })
 export class GeminiService {
-  private http = inject(HttpClient);
   private context: ChatContext | null = null;
 
   // Sets the video context (metadata, previous history and language) for the next messages
@@ -43,37 +40,71 @@ export class GeminiService {
     };
   }
 
-  async sendMessage(message: string): Promise<ChatMessage> {
+  async sendMessage(message: string, onText: (textSoFar: string) => void): Promise<ChatMessage> {
     const context = this.context;
     if (!context) {
       throw new Error('Chat session not initialized. Please provide a video URL first.');
     }
 
+    const genericError = 'Error al conectar con la IA. Por favor intenta de nuevo.';
+    let response: Response;
     try {
-      const response = await firstValueFrom(this.http.post<{ text: string; sources: ChatMessage['sources'] }>(
-        '/api/chat',
-        {
+      response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           videoId: context.videoId,
           videoTitle: context.videoTitle,
           language: context.language,
           history: context.history,
           message
-        }
-      ));
-
-      const text = response.text || 'Lo siento, no pude generar una respuesta. Intenta ser más específico o pedirme que busque el título del video en Google.';
-      context.history.push({ role: 'user', text: message }, { role: 'model', text });
-
-      return {
-        role: 'model',
-        text,
-        sources: response.sources ?? []
-      };
-
+        })
+      });
     } catch (error) {
       console.error('Error sending message to Gemini:', error);
-      const serverMessage = error instanceof HttpErrorResponse ? error.error?.error : null;
-      throw new Error(serverMessage || 'Error al conectar con la IA. Por favor intenta de nuevo.');
+      throw new Error(genericError);
     }
+
+    if (!response.ok || !response.body) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.error || genericError);
+    }
+
+    let text = '';
+    let sources: ChatMessage['sources'] = [];
+    let done = false;
+
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    while (true) {
+      const { value, done: streamDone } = await reader.read().catch(() => ({ value: undefined, done: true }));
+      if (value) buffer += value;
+      const lines = buffer.split('\n');
+      buffer = streamDone ? '' : lines.pop()!;
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const event = JSON.parse(line);
+        if (event.type === 'text') {
+          text += event.text;
+          onText(text);
+        } else if (event.type === 'done') {
+          sources = event.sources ?? [];
+          done = true;
+        } else if (event.type === 'error') {
+          throw new Error(event.error || genericError);
+        }
+      }
+      if (streamDone) break;
+    }
+
+    if (!done) {
+      throw new Error('La respuesta de la IA se interrumpió. Por favor intenta de nuevo.');
+    }
+
+    text ||= 'Lo siento, no pude generar una respuesta. Intenta ser más específico o pedirme que busque el título del video en Google.';
+    context.history.push({ role: 'user', text: message }, { role: 'model', text });
+
+    return { role: 'model', text, sources };
   }
 }

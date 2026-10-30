@@ -97,30 +97,55 @@ app.post('/api/chat', ...apiLimiters, express.json({ limit: '300kb' }), async (r
 
   const { videoId, videoTitle, language, history, message } = input;
 
+  const abort = new AbortController();
+  res.on('close', () => abort.abort());
+
   try {
-    const chat = ai.chats.create({
+    const stream = await ai.models.generateContentStream({
       model: MODEL,
-      history: history.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
+      contents: [
+        ...history.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
+        { role: 'user', parts: [{ text: message }] }
+      ],
       config: {
         tools: [{ googleSearch: {} }],
-        systemInstruction: buildSystemInstruction(videoId, videoTitle, LANGUAGES[language])
+        systemInstruction: buildSystemInstruction(videoId, videoTitle, LANGUAGES[language]),
+        abortSignal: abort.signal
       }
     });
 
-    const response = await chat.sendMessage({ message });
+    // Respuesta NDJSON: una línea JSON por evento ("text", y al final "done" o "error").
+    res.status(200).set({
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no'
+    });
+    res.flushHeaders();
 
     const sources = [];
     const seen = new Set();
-    for (const chunk of response.candidates?.[0]?.groundingMetadata?.groundingChunks ?? []) {
-      const uri = chunk.web?.uri;
-      if (uri && /^https?:\/\//i.test(uri) && !seen.has(uri)) {
-        seen.add(uri);
-        sources.push({ title: chunk.web.title || uri, uri });
-      }
-    }
+    try {
+      for await (const chunk of stream) {
+        const text = chunk.text;
+        if (text) res.write(JSON.stringify({ type: 'text', text }) + '\n');
 
-    res.json({ text: response.text || '', sources });
+        for (const g of chunk.candidates?.[0]?.groundingMetadata?.groundingChunks ?? []) {
+          const uri = g.web?.uri;
+          if (uri && /^https?:\/\//i.test(uri) && !seen.has(uri)) {
+            seen.add(uri);
+            sources.push({ title: g.web.title || uri, uri });
+          }
+        }
+      }
+      res.write(JSON.stringify({ type: 'done', sources }) + '\n');
+    } catch (error) {
+      if (abort.signal.aborted) return;
+      console.error('Error durante el streaming de Gemini:', error?.message || error);
+      res.write(JSON.stringify({ type: 'error', error: 'La respuesta de la IA se interrumpió. Por favor intenta de nuevo.' }) + '\n');
+    }
+    res.end();
   } catch (error) {
+    if (abort.signal.aborted) return;
     // No se reenvía el error original al cliente: podría incluir detalles internos.
     console.error('Error llamando a Gemini:', error?.message || error);
     const status = error?.status === 429 ? 429 : 502;

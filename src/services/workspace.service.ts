@@ -265,11 +265,22 @@ export class WorkspaceService {
     this.isAiThinking.set(true);
     this.chatError.set(null);
 
+    let streaming = false;
+    const setModelMessage = (msg: ChatMessage) => {
+      if (this.videoId() !== vId) return;
+      this.messages.update(p => streaming ? [...p.slice(0, -1), msg] : [...p, msg]);
+      streaming = true;
+    };
+
     try {
-      const response = await this.geminiService.sendMessage(text);
-      this.messages.update(p => [...p, response]);
-      this.saveCurrentState();
+      const response = await this.geminiService.sendMessage(text, partial => {
+        setModelMessage({ role: 'model', text: partial });
+        this.isAiThinking.set(false);
+      });
+      setModelMessage(response);
+      if (this.videoId() === vId) this.saveCurrentState();
     } catch (error: any) {
+      if (streaming && this.videoId() === vId) this.messages.update(p => p.slice(0, -1));
       this.chatError.set(error.message || 'Error communicating with AI');
     } finally {
       this.isAiThinking.set(false);

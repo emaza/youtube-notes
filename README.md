@@ -58,6 +58,32 @@ GEMINI_API_KEY=... APP_PASSWORD=... npm start   # http://localhost:8080
 El `Dockerfile` construye la app y genera una imagen que solo contiene el servidor
 y los ficheros compilados.
 
+#### Probar el contenedor en local
+
+```bash
+docker build -t youtube-notes .
+docker run -d --name youtube-notes --env-file .env.local -p 8080:8080 youtube-notes
+docker logs -f youtube-notes
+```
+
+La app queda en http://localhost:8080. Si `APP_PASSWORD` está definida, el navegador
+pide usuario y contraseña: el usuario puede ser cualquiera y la contraseña es el
+valor de `APP_PASSWORD`.
+
+El contenedor ejecuta el código que había al hacer `docker build`, así que **cada vez
+que cambies código hay que reconstruir la imagen** antes de volver a lanzarla:
+
+```bash
+docker rm -f youtube-notes
+docker build -t youtube-notes .
+docker run -d --name youtube-notes --env-file .env.local -p 8080:8080 youtube-notes
+```
+
+Si solo cambias `.env.local`, no hace falta reconstruir: basta con `docker rm -f` y
+volver a hacer `docker run`.
+
+Para pararlo y borrarlo: `docker rm -f youtube-notes`.
+
 Ejemplo con Cloud Run, guardando la clave en Secret Manager (no en texto plano):
 
 ```bash
