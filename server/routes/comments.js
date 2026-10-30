@@ -10,9 +10,9 @@ export const commentsRouter = Router();
 
 commentsRouter.get('/comments', commentsLimiter, async (req, res) => {
   const { videoId, order = 'relevance', pageToken } = req.query;
-  if (typeof videoId !== 'string' || !VIDEO_ID_RE.test(videoId)) return res.status(400).json({ error: 'videoId inválido.' });
-  if (order !== 'relevance' && order !== 'time') return res.status(400).json({ error: 'Orden inválido.' });
-  if (!isValidPageToken(pageToken)) return res.status(400).json({ error: 'pageToken inválido.' });
+  if (typeof videoId !== 'string' || !VIDEO_ID_RE.test(videoId)) return res.status(400).json({ error: 'Invalid videoId.' });
+  if (order !== 'relevance' && order !== 'time') return res.status(400).json({ error: 'Invalid order.' });
+  if (!isValidPageToken(pageToken)) return res.status(400).json({ error: 'Invalid pageToken.' });
 
   await proxyYouTubeComments(res, 'commentThreads', { videoId, order, pageToken },
     item => toComment(item.id, item.snippet.topLevelComment.snippet, item.snippet.totalReplyCount));
@@ -21,9 +21,9 @@ commentsRouter.get('/comments', commentsLimiter, async (req, res) => {
 commentsRouter.get('/comments/replies', commentsLimiter, async (req, res) => {
   const { parentId, pageToken } = req.query;
   if (typeof parentId !== 'string' || !/^[A-Za-z0-9_.-]{1,100}$/.test(parentId)) {
-    return res.status(400).json({ error: 'parentId inválido.' });
+    return res.status(400).json({ error: 'Invalid parentId.' });
   }
-  if (!isValidPageToken(pageToken)) return res.status(400).json({ error: 'pageToken inválido.' });
+  if (!isValidPageToken(pageToken)) return res.status(400).json({ error: 'Invalid pageToken.' });
 
   await proxyYouTubeComments(res, 'comments', { parentId, pageToken }, item => toComment(item.id, item.snippet, 0));
 });
@@ -43,7 +43,7 @@ function toComment(id, snippet, replyCount) {
 
 async function proxyYouTubeComments(res, resource, params, mapItem) {
   if (!YOUTUBE_API_KEY) {
-    return res.status(503).json({ error: 'Los comentarios no están configurados en el servidor (falta YOUTUBE_API_KEY).' });
+    return res.status(503).json({ error: 'Comments are not configured on the server (YOUTUBE_API_KEY is missing).' });
   }
 
   try {
@@ -62,6 +62,6 @@ async function proxyYouTubeComments(res, resource, params, mapItem) {
     if (error instanceof YouTubeApiError && error.reason === 'commentsDisabled') {
       return res.json({ comments: [], nextPageToken: null, disabled: true });
     }
-    sendYouTubeError(res, error, 'Error al obtener los comentarios de YouTube.', 'Vídeo o comentario no encontrado.');
+    sendYouTubeError(res, error, 'Could not get the comments from YouTube.', 'Video or comment not found.');
   }
 }

@@ -37,7 +37,7 @@
               (click)="toggleRaw(msg)"
               class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-600/50"
             >
-              {{ showRaw().has(msg) ? 'Ver formateado' : 'Ver Markdown' }}
+              {{ showRaw().has(msg) ? 'View formatted' : 'View markdown' }}
             </button>
             <button 
               (click)="copyToClipboard(msg.text, $index)" 
@@ -63,7 +63,7 @@
       <!-- Sources for AI responses -->
       @if (msg.role === 'model' && msg.sources && msg.sources.length > 0) {
         <div class="ml-2 max-w-[85%] text-xs">
-            <p class="text-gray-500 mb-1">Fuentes:</p>
+            <p class="text-gray-500 mb-1">Sources:</p>
             <div class="flex flex-wrap gap-2">
               @for (source of msg.sources; track source.uri) {
                 <a [href]="source.uri" target="_blank" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-blue-300 px-2 py-0.5 rounded truncate max-w-[150px]" [title]="source.title">

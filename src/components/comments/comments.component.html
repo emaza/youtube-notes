@@ -29,14 +29,14 @@
   <!-- Comments List -->
   <div class="flex-grow overflow-y-auto custom-scrollbar bg-gray-900/40 min-h-0 p-4 space-y-4">
     @if (disabled()) {
-      <p class="text-sm text-gray-400 text-center py-8">Los comentarios están desactivados en este vídeo.</p>
+      <p class="text-sm text-gray-400 text-center py-8">Comments are turned off for this video.</p>
     } @else if (error() && comments().length === 0) {
       <div class="text-sm text-red-400 text-center py-8 space-y-3">
         <p>{{ error() }}</p>
         <button (click)="reload()" class="text-xs px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600 cursor-pointer">Reintentar</button>
       </div>
     } @else if (!loading() && loaded() && comments().length === 0) {
-      <p class="text-sm text-gray-400 text-center py-8">Este vídeo no tiene comentarios.</p>
+      <p class="text-sm text-gray-400 text-center py-8">This video has no comments.</p>
     }
 
     @for (comment of comments(); track comment.id) {
@@ -69,7 +69,7 @@
               } @else if (r.error) {
                 <p class="text-xs text-red-400">{{ r.error }}</p>
               } @else if (r.nextPageToken) {
-                <button (click)="loadReplies(comment.id)" class="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">Más respuestas</button>
+                <button (click)="loadReplies(comment.id)" class="text-xs text-blue-400 hover:text-blue-300 cursor-pointer">More replies</button>
               }
             </div>
           }
@@ -85,7 +85,7 @@
 
     @if (!loading() && nextPageToken()) {
       <div class="text-center pt-2">
-        <button (click)="loadMore()" class="text-sm px-4 py-1.5 rounded-md bg-gray-700 text-white hover:bg-gray-600 cursor-pointer">Cargar más</button>
+        <button (click)="loadMore()" class="text-sm px-4 py-1.5 rounded-md bg-gray-700 text-white hover:bg-gray-600 cursor-pointer">Load more</button>
       </div>
     }
   </div>
