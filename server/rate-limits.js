@@ -12,3 +12,13 @@ export const chatLimiters = [
 export const commentsLimiter = rateLimit({
   windowMs: 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, message: rateLimitMessage
 });
+
+// Cada búsqueda cuesta 100 unidades de la cuota diaria de YouTube (10.000 por defecto).
+export const searchLimiters = [
+  rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, message: rateLimitMessage }),
+  rateLimit({ windowMs: 24 * 60 * 60_000, limit: 100, standardHeaders: false, legacyHeaders: false, message: rateLimitMessage })
+];
+
+export const categoriesLimiter = rateLimit({
+  windowMs: 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, message: rateLimitMessage
+});

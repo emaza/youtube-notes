@@ -1,7 +1,11 @@
 import { Injectable } from '@angular/core';
 import { VideoType } from './storage.service';
+import { SEARCH_FILTER_KEYS, SearchFilters, parseFilters, serializeFilters } from '../utils/search';
 
-/** Keeps the open video in the browser URL (?v=&type=) and its history. */
+/**
+ * Keeps the open video (?v=&type=) or the active search (?q=&order=…) in the
+ * browser URL and its history.
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -22,27 +26,53 @@ export class BrowserUrlService {
     return { videoId, type };
   }
 
+  /** The search in the current URL, or null when there is none. */
+  readSearch(): SearchFilters | null {
+    if (!this.available) return null;
+    return parseFilters(new URLSearchParams(window.location.search));
+  }
+
   showVideo(videoId: string, type: VideoType) {
     if (!this.available) return;
 
     const url = new URL(window.location.href);
+    this.deleteSearchParams(url);
     url.searchParams.set('v', videoId);
     url.searchParams.set('type', type);
     this.setBrowserUrl(url);
   }
 
+  showSearch(filters: SearchFilters) {
+    if (!this.available) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('v');
+    url.searchParams.delete('type');
+    this.deleteSearchParams(url);
+    for (const [key, value] of new URLSearchParams(serializeFilters(filters))) {
+      url.searchParams.set(key, value);
+    }
+    this.setBrowserUrl(url);
+  }
+
+  /** Removes the video and the search from the URL. */
   clear() {
     if (!this.available) return;
 
     const url = new URL(window.location.href);
     url.searchParams.delete('v');
     url.searchParams.delete('type');
+    this.deleteSearchParams(url);
     this.setBrowserUrl(url);
   }
 
   /** Back/forward: called after the browser has already changed the URL. */
   onNavigate(callback: () => void) {
     if (this.available) window.addEventListener('popstate', callback);
+  }
+
+  private deleteSearchParams(url: URL) {
+    for (const key of SEARCH_FILTER_KEYS) url.searchParams.delete(key);
   }
 
   /**

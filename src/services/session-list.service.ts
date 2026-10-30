@@ -33,6 +33,8 @@ export class SessionListService {
     );
   });
 
+  savedIds = computed(() => new Set(this.savedVideos().map(v => v.videoId)));
+
   totalPages = computed(() => Math.ceil(this.filteredVideos().length / this.ITEMS_PER_PAGE));
 
   paginatedVideos = computed(() => {
@@ -60,6 +62,13 @@ export class SessionListService {
   /** Reloads the list from storage (after saving, deleting or importing). */
   refresh() {
     this.savedVideos.set(this.storageService.getAllSavedVideos());
+  }
+
+  /** Saves a video as an empty session (no notes or chat yet) without opening it. */
+  save(videoId: string, title: string, channelTitle: string, channelUrl: string) {
+    if (this.storageService.getVideoData(videoId)) return;
+    this.storageService.saveVideoData(videoId, title, '', [], channelTitle, channelUrl, 'video');
+    this.refresh();
   }
 
   setSearchQuery(query: string) {

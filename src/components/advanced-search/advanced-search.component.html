@@ -1,0 +1,167 @@
+<form
+  (ngSubmit)="submit()"
+  class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl text-sm text-gray-200 animate-fade-in"
+>
+  <div class="max-h-[60vh] overflow-y-auto custom-scrollbar p-5 space-y-3">
+
+    <!-- Words -->
+    <div class="grid grid-cols-1 sm:grid-cols-[10rem_1fr] sm:items-center gap-x-4 gap-y-1">
+      <label for="as-q" class="text-gray-400">Has the words</label>
+      <input id="as-q" name="q" type="text" [(ngModel)]="form.q" class="as-field" autocomplete="off">
+
+      <label for="as-phrase" class="text-gray-400">Exact phrase</label>
+      <input id="as-phrase" name="exactPhrase" type="text" [(ngModel)]="form.exactPhrase" class="as-field" autocomplete="off">
+
+      <label for="as-any" class="text-gray-400">Any of these words</label>
+      <input id="as-any" name="anyWords" type="text" [(ngModel)]="form.anyWords" class="as-field" autocomplete="off">
+
+      <label for="as-none" class="text-gray-400">Doesn't have</label>
+      <input id="as-none" name="noneWords" type="text" [(ngModel)]="form.noneWords" class="as-field" autocomplete="off">
+    </div>
+
+    <!-- Channel -->
+    <div class="grid grid-cols-1 sm:grid-cols-[10rem_1fr] sm:items-center gap-x-4 gap-y-1 pt-3 border-t border-gray-700/60">
+      <label for="as-channel" class="text-gray-400">Channel</label>
+      <div class="flex gap-2">
+        <input
+          id="as-channel" name="channel" type="text" [(ngModel)]="form.channel"
+          placeholder="@handle or channel ID (UC…)" class="as-field flex-1 min-w-0" autocomplete="off"
+        >
+        <select name="channelType" [(ngModel)]="form.channelType" class="as-field w-36" aria-label="Channel type">
+          <option value="">Any channel</option>
+          <option value="show">Shows only</option>
+        </select>
+      </div>
+
+      <label for="as-order" class="text-gray-400">Sort by</label>
+      <select id="as-order" name="order" [(ngModel)]="form.order" class="as-field">
+        <option value="">Relevance (default)</option>
+        @for (option of orderOptions; track option.value) {
+          @if (option.value !== 'relevance') {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        }
+      </select>
+
+      <label for="as-after" class="text-gray-400">Uploaded between</label>
+      <div class="flex items-center gap-2">
+        <input id="as-after" name="publishedAfter" type="date" [(ngModel)]="form.publishedAfter" class="as-field flex-1 min-w-0 [color-scheme:dark]">
+        <span class="text-gray-500">and</span>
+        <input name="publishedBefore" type="date" [(ngModel)]="form.publishedBefore" class="as-field flex-1 min-w-0 [color-scheme:dark]" aria-label="Uploaded before">
+      </div>
+    </div>
+
+    <!-- Video properties -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-3 border-t border-gray-700/60">
+      @for (field of videoSelects; track field.key) {
+        <label class="flex flex-col gap-1">
+          <span class="text-gray-400">{{ field.label }}</span>
+          <select [name]="field.key" [(ngModel)]="form[field.key]" class="as-field">
+            <option value="">{{ field.anyLabel }}</option>
+            @for (option of field.options; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+      }
+    </div>
+
+    <!-- Region, language and content -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-gray-700/60">
+      <label class="flex flex-col gap-1">
+        <span class="text-gray-400">Region</span>
+        <select name="regionCode" [ngModel]="form.regionCode" (ngModelChange)="form.regionCode = $event; loadCategories()" class="as-field">
+          <option value="">Any region</option>
+          @for (option of regionOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <span class="text-gray-400">Language</span>
+        <select name="relevanceLanguage" [(ngModel)]="form.relevanceLanguage" class="as-field">
+          <option value="">Any language</option>
+          @for (option of languageOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <span class="text-gray-400">Category</span>
+        <select name="videoCategoryId" [(ngModel)]="form.videoCategoryId" class="as-field" [disabled]="categoriesError()">
+          <option value="">{{ categoriesError() ? 'Categories unavailable' : 'Any category' }}</option>
+          @for (category of categories(); track category.id) {
+            <option [value]="category.id">{{ category.title }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-1">
+        <span class="text-gray-400">Topic</span>
+        <select name="topicId" [(ngModel)]="form.topicId" class="as-field">
+          <option value="">Any topic</option>
+          @for (group of topicGroups; track group.label) {
+            <optgroup [label]="group.label">
+              @for (topic of group.topics; track topic.value) {
+                <option [value]="topic.value">{{ topic.label }}</option>
+              }
+            </optgroup>
+          }
+        </select>
+      </label>
+    </div>
+
+    <!-- Location and page size -->
+    <div class="grid grid-cols-1 sm:grid-cols-[10rem_1fr] sm:items-center gap-x-4 gap-y-1 pt-3 border-t border-gray-700/60">
+      <label for="as-location" class="text-gray-400">Near location</label>
+      <div class="flex flex-wrap items-center gap-2">
+        <input
+          id="as-location" name="location" type="text" [(ngModel)]="form.location"
+          placeholder="Latitude,longitude (40.4168,-3.7038)" class="as-field flex-1 min-w-[12rem]" autocomplete="off"
+        >
+        <span class="text-gray-500">within</span>
+        <input
+          name="radiusAmount" type="number" min="0" step="any" [(ngModel)]="radiusAmount"
+          class="as-field w-24" aria-label="Radius"
+        >
+        <select name="radiusUnit" [(ngModel)]="radiusUnit" class="as-field w-20" aria-label="Radius unit">
+          @for (unit of radiusUnits; track unit) {
+            <option [value]="unit">{{ unit }}</option>
+          }
+        </select>
+      </div>
+
+      <label for="as-max" class="text-gray-400">Results per page</label>
+      <select id="as-max" name="maxResults" [(ngModel)]="form.maxResults" class="as-field sm:w-40">
+        <option value="">5 (default)</option>
+        @for (size of maxResultsOptions; track size) {
+          <option [value]="size">{{ size }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="flex items-center justify-end gap-3 px-5 py-3 border-t border-gray-700 bg-gray-900/40 rounded-b-xl">
+    @if (validationError()) {
+      <p class="mr-auto text-xs text-red-400">{{ validationError() }}</p>
+    }
+    <button
+      type="button"
+      (click)="reset()"
+      class="px-4 py-2 text-gray-400 hover:text-white rounded-lg transition-colors"
+    >
+      Reset
+    </button>
+    <button
+      type="submit"
+      [disabled]="!canSubmit()"
+      class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-full shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600"
+      [title]="canSubmit() ? 'Search' : 'Change some filter to search'"
+    >
+      Search
+    </button>
+  </div>
+</form>

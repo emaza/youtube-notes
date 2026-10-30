@@ -55,3 +55,8 @@
   color: inherit;
   font-size: inherit;
 }
+
+/* Inputs and selects of the advanced search panel. */
+.as-field {
+  @apply bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors disabled:opacity-50;
+}

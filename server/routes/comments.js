@@ -2,8 +2,8 @@
 import { Router } from 'express';
 import { YOUTUBE_API_KEY, VIDEO_ID_RE } from '../config.js';
 import { commentsLimiter } from '../rate-limits.js';
+import { youtubeGet, sendYouTubeError, isValidPageToken, YouTubeApiError } from '../youtube-api.js';
 
-const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const COMMENTS_PAGE_SIZE = 20;
 
 export const commentsRouter = Router();
@@ -28,10 +28,6 @@ commentsRouter.get('/comments/replies', commentsLimiter, async (req, res) => {
   await proxyYouTubeComments(res, 'comments', { parentId, pageToken }, item => toComment(item.id, item.snippet, 0));
 });
 
-function isValidPageToken(token) {
-  return token === undefined || (typeof token === 'string' && /^[A-Za-z0-9_=-]{1,500}$/.test(token));
-}
-
 function toComment(id, snippet, replyCount) {
   return {
     id,
@@ -50,37 +46,22 @@ async function proxyYouTubeComments(res, resource, params, mapItem) {
     return res.status(503).json({ error: 'Los comentarios no están configurados en el servidor (falta YOUTUBE_API_KEY).' });
   }
 
-  const url = new URL(`${YOUTUBE_API_BASE}/${resource}`);
-  url.searchParams.set('part', 'snippet');
-  url.searchParams.set('maxResults', String(COMMENTS_PAGE_SIZE));
-  // Texto plano: evita recibir HTML de YouTube que habría que sanear.
-  url.searchParams.set('textFormat', 'plainText');
-  for (const [key, value] of Object.entries(params)) {
-    if (value) url.searchParams.set(key, value);
-  }
-  url.searchParams.set('key', YOUTUBE_API_KEY);
-
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const reason = data?.error?.errors?.[0]?.reason;
-      if (reason === 'commentsDisabled') return res.json({ comments: [], nextPageToken: null, disabled: true });
-      if (response.status === 404) return res.status(404).json({ error: 'Vídeo o comentario no encontrado.' });
-      if (reason === 'quotaExceeded') {
-        return res.status(429).json({ error: 'Se ha agotado la cuota diaria de la API de YouTube. Inténtalo mañana.' });
-      }
-      console.error('Error de la API de YouTube:', response.status, reason || data?.error?.message);
-      return res.status(502).json({ error: 'Error al obtener los comentarios de YouTube.' });
-    }
-
+    const data = await youtubeGet(resource, {
+      part: 'snippet',
+      maxResults: COMMENTS_PAGE_SIZE,
+      // Texto plano: evita recibir HTML de YouTube que habría que sanear.
+      textFormat: 'plainText',
+      ...params
+    });
     res.json({
       comments: (data.items ?? []).map(mapItem),
       nextPageToken: data.nextPageToken || null
     });
   } catch (error) {
-    console.error('Error llamando a la API de YouTube:', error?.message || error);
-    res.status(502).json({ error: 'Error al obtener los comentarios de YouTube.' });
+    if (error instanceof YouTubeApiError && error.reason === 'commentsDisabled') {
+      return res.json({ comments: [], nextPageToken: null, disabled: true });
+    }
+    sendYouTubeError(res, error, 'Error al obtener los comentarios de YouTube.', 'Vídeo o comentario no encontrado.');
   }
 }
