@@ -13,7 +13,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
     <div 
       cdkDrag
       cdkDragBoundary="body"
-      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 overflow-hidden group hover:shadow-purple-500/20 resize flex flex-col w-full h-full relative z-30"
+      class="bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl ring-1 ring-white/10 overflow-hidden group hover:shadow-purple-500/20 resize flex flex-col w-full relative z-30"
+      [class.h-full]="!isShort()"
     >
       <!-- Header (Drag Handle) -->
       <div cdkDragHandle class="p-3 sm:p-4 bg-gray-900/90 flex items-center justify-between shrink-0 border-b border-gray-700 select-none cursor-default lg:cursor-move">
@@ -32,7 +33,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
       </div>
       
       <!-- Video Container -->
-      <div class="flex-grow w-full relative bg-black min-h-0">
+      <!-- Shorts keep YouTube's vertical 9:16 format -->
+      <div class="w-full relative bg-black min-h-0" [ngClass]="isShort() ? 'aspect-[9/16] flex-none' : 'flex-grow'">
         @if(sanitizedUrl(); as url) {
           <iframe 
             class="absolute top-0 left-0 w-full h-full pointer-events-auto" 
@@ -58,6 +60,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 export class VideoPlayerComponent {
   videoId = input.required<string | null>();
   title = input<string>('');
+  isShort = input(false);
 
   sanitizedUrl = computed(() => {
     const id = this.videoId();
