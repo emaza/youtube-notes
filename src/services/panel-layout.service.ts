@@ -16,11 +16,12 @@ export interface PanelLayout {
 })
 export class PanelLayoutService {
   private layouts = new Map<string, PanelLayout>();
-  /** Dragged panels, from the one dragged longest ago to the most recent (on top). */
-  readonly dragOrder = signal<string[]>([]);
+  /** Panels brought to front, from the oldest to the most recent (on top). */
+  readonly stackOrder = signal<string[]>([]);
 
   bringToFront(key: string) {
-    this.dragOrder.update(order => [...order.filter(k => k !== key), key]);
+    if (this.stackOrder().at(-1) === key) return;
+    this.stackOrder.update(order => [...order.filter(k => k !== key), key]);
   }
 
   get(key: string): PanelLayout | undefined {

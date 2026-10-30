@@ -2,9 +2,9 @@ import { Directive, ElementRef, effect, inject, input, untracked, DestroyRef } f
 import { CdkDrag } from '@angular/cdk/drag-drop';
 import { PanelLayoutService } from '../services/panel-layout.service';
 
-// Dragged panels stack above the panels' own z-index (up to z-50) and below the
-// modals (z-[100]).
-const DRAGGED_BASE_Z_INDEX = 51;
+// Panels brought to front stack above the panels' own z-index (up to z-50) and
+// below the modals (z-[100]).
+const STACKED_BASE_Z_INDEX = 51;
 
 /**
  * Persists the drag position (cdkDrag) and the user-resized size (CSS `resize`)
@@ -29,12 +29,14 @@ export class PersistPanelDirective {
       untracked(() => this.restore(key));
     });
 
-    // Like windows: the panel being dragged goes on top, the rest keep their order.
+    // Like windows: clicking or dragging a panel brings it on top, the rest keep
+    // their order. Capture phase, because some inner controls stop propagation.
     effect(() => {
-      const index = this.layouts.dragOrder().indexOf(this.key());
-      this.el.style.zIndex = index === -1 ? '' : String(DRAGGED_BASE_Z_INDEX + index);
+      const index = this.layouts.stackOrder().indexOf(this.key());
+      this.el.style.zIndex = index === -1 ? '' : String(STACKED_BASE_Z_INDEX + index);
     });
-    const dragStarted = this.drag.started.subscribe(() => this.layouts.bringToFront(this.key()));
+    const bringToFront = () => this.layouts.bringToFront(this.key());
+    this.el.addEventListener('pointerdown', bringToFront, { capture: true });
 
     const dragEnded = this.drag.ended.subscribe(({ source }) => {
       this.layouts.savePosition(this.key(), source.getFreeDragPosition());
@@ -49,7 +51,7 @@ export class PersistPanelDirective {
     observer.observe(this.el, { attributes: true, attributeFilter: ['style'] });
 
     inject(DestroyRef).onDestroy(() => {
-      dragStarted.unsubscribe();
+      this.el.removeEventListener('pointerdown', bringToFront, { capture: true });
       dragEnded.unsubscribe();
       observer.disconnect();
     });
