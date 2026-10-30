@@ -37,7 +37,7 @@
               (click)="toggleRaw(msg)"
               class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-600/50"
             >
-              {{ showRaw().has(msg) ? 'Formatear respuesta' : 'Ver Markdown' }}
+              {{ showRaw().has(msg) ? 'Ver formateado' : 'Ver Markdown' }}
             </button>
             <button 
               (click)="copyToClipboard(msg.text, $index)" 
