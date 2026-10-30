@@ -34,6 +34,9 @@ cp .env.example .env.local   # y pon tu GEMINI_API_KEY
 npm run dev                  # API en :8080 + Angular en http://localhost:3000
 ```
 
+En desarrollo abre siempre http://localhost:3000. El servidor de :8080 solo atiende la API:
+la app compilada (`dist/`) únicamente se sirve en producción (`NODE_ENV=production`).
+
 Consigue la API key en <https://aistudio.google.com/apikey>.
 
 ### Comentarios de YouTube (opcional)
