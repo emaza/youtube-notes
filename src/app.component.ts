@@ -12,6 +12,7 @@ import { VideoPlayerComponent } from './components/video-player.component';
 import { AssistantComponent } from './components/assistant.component';
 import { NotesComponent } from './components/notes.component';
 import { SettingsModalComponent } from './components/settings-modal.component';
+import { CommentsComponent } from './components/comments.component';
 
 @Component({
   selector: 'app-root',
@@ -26,7 +27,8 @@ import { SettingsModalComponent } from './components/settings-modal.component';
     VideoPlayerComponent,
     AssistantComponent,
     NotesComponent,
-    SettingsModalComponent
+    SettingsModalComponent,
+    CommentsComponent
   ],
 })
 export class AppComponent {
@@ -41,8 +43,8 @@ export class AppComponent {
   isSettingsModalOpen = signal(false);
   importStatusMessage = signal<string | null>(null);
   
-  // Mobile Tabs State
-  activeMobileTab = signal<'chat' | 'notes'>('chat');
+  // Mobile Tabs State (on desktop chat, notes and comments are all visible)
+  activeMobileTab = signal<'chat' | 'notes' | 'comments'>('chat');
   
   // Constants
   availableLanguages = [
