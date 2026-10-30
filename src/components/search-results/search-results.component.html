@@ -1,7 +1,7 @@
-<div class="mb-10 animate-fade-in">
+<div class="animate-fade-in">
 
   <!-- Controls Header -->
-  <div class="flex flex-col gap-3 mb-6">
+  <div class="flex flex-col gap-3 mb-4">
     <div class="flex flex-wrap items-center gap-3">
       <h2 class="text-xl font-bold text-gray-300 flex items-center gap-2 min-w-0">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -140,7 +140,7 @@
 
     <!-- Pagination Controls -->
     @if (p.prevPageToken || p.nextPageToken) {
-      <div class="flex justify-center items-center gap-4 mt-6">
+      <div class="flex justify-center items-center gap-4 mt-4">
         <button
           (click)="previousPage.emit()"
           [disabled]="!p.prevPageToken"
