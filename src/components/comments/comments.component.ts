@@ -27,8 +27,8 @@ export class CommentsComponent {
   layout = input('video');
 
   readonly orderOptions: { value: CommentsOrder; label: string }[] = [
-    { value: 'relevance', label: 'Relevant' },
-    { value: 'time', label: 'Recent' }
+    { value: 'relevance', label: 'Relevantes' },
+    { value: 'time', label: 'Recientes' }
   ];
 
   order = signal<CommentsOrder>('relevance');

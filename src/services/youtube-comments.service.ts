@@ -48,7 +48,7 @@ export class YouTubeCommentsService {
       return await firstValueFrom(this.http.get<CommentsPage>(url, { params }));
     } catch (e) {
       const message = e instanceof HttpErrorResponse ? e.error?.error : null;
-      throw new Error(message || 'Could not load the comments.');
+      throw new Error(message || 'No se pudieron cargar los comentarios.');
     }
   }
 }

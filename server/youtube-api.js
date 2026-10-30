@@ -32,11 +32,11 @@ export async function youtubeGet(resource, params) {
  * Responde al cliente con el error adecuado. `fallback` es el mensaje genérico
  * (502) y `notFound` el del 404.
  */
-export function sendYouTubeError(res, error, fallback, notFound = 'Not found.') {
+export function sendYouTubeError(res, error, fallback, notFound = 'No encontrado.') {
   if (error instanceof YouTubeApiError) {
     if (error.status === 404) return res.status(404).json({ error: notFound });
     if (error.reason === 'quotaExceeded') {
-      return res.status(429).json({ error: 'The daily YouTube API quota has been used up. Try again tomorrow.' });
+      return res.status(429).json({ error: 'Se ha agotado la cuota diaria de la API de YouTube. Inténtalo mañana.' });
     }
     console.error('Error de la API de YouTube:', error.status, error.reason || error.message);
   } else {

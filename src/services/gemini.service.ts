@@ -46,7 +46,7 @@ export class GeminiService {
       throw new Error('Chat session not initialized. Please provide a video URL first.');
     }
 
-    const genericError = 'Could not connect to the AI. Please try again.';
+    const genericError = 'Error al conectar con la IA. Por favor intenta de nuevo.';
     let response: Response;
     try {
       response = await fetch('/api/chat', {
@@ -99,10 +99,10 @@ export class GeminiService {
     }
 
     if (!done) {
-      throw new Error('The AI response was interrupted. Please try again.');
+      throw new Error('La respuesta de la IA se interrumpió. Por favor intenta de nuevo.');
     }
 
-    text ||= 'Sorry, I couldn\'t generate a response. Try being more specific or ask me to search Google for the video title.';
+    text ||= 'Lo siento, no pude generar una respuesta. Intenta ser más específico o pedirme que busque el título del video en Google.';
     context.history.push({ role: 'user', text: message }, { role: 'model', text });
 
     return { role: 'model', text, sources };

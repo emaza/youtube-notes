@@ -35,6 +35,6 @@ export function basicAuth(password) {
       }
     }
     res.set('WWW-Authenticate', 'Basic realm="YouTube Notetaker", charset="UTF-8"');
-    res.status(401).send('Authentication required');
+    res.status(401).send('Autenticación requerida');
   };
 }

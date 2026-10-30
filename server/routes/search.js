@@ -55,7 +55,7 @@ searchRouter.get('/search', searchLimiters, async (req, res) => {
   try {
     if (params.channel) {
       const channelId = await resolveChannel(params.channel);
-      if (!channelId) return res.status(404).json({ error: `Channel not found: ${params.channel}` });
+      if (!channelId) return res.status(404).json({ error: `Canal no encontrado: ${params.channel}` });
       params.channelId = channelId;
       delete params.channel;
     }
@@ -68,7 +68,7 @@ searchRouter.get('/search', searchLimiters, async (req, res) => {
       totalResults: data.pageInfo?.totalResults ?? 0
     });
   } catch (err) {
-    sendYouTubeError(res, err, 'Could not search YouTube.');
+    sendYouTubeError(res, err, 'Error al buscar en YouTube.');
   }
 });
 
@@ -77,9 +77,9 @@ searchRouter.get('/search/categories', categoriesLimiter, async (req, res) => {
 
   const { regionCode = 'US', hl = 'en' } = req.query;
   if (typeof regionCode !== 'string' || !PATTERN_PARAMS.regionCode.test(regionCode)) {
-    return res.status(400).json({ error: 'Invalid regionCode.' });
+    return res.status(400).json({ error: 'regionCode inválido.' });
   }
-  if (typeof hl !== 'string' || !/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(hl)) return res.status(400).json({ error: 'Invalid hl.' });
+  if (typeof hl !== 'string' || !/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(hl)) return res.status(400).json({ error: 'hl inválido.' });
 
   const cacheKey = `${regionCode}|${hl}`;
   if (categoriesCache.has(cacheKey)) return res.json({ categories: categoriesCache.get(cacheKey) });
@@ -92,12 +92,12 @@ searchRouter.get('/search/categories', categoriesLimiter, async (req, res) => {
     remember(categoriesCache, cacheKey, categories);
     res.json({ categories });
   } catch (err) {
-    sendYouTubeError(res, err, 'Could not get the YouTube categories.');
+    sendYouTubeError(res, err, 'Error al obtener las categorías de YouTube.');
   }
 });
 
 function notConfigured(res) {
-  return res.status(503).json({ error: 'Search is not configured on the server (YOUTUBE_API_KEY is missing).' });
+  return res.status(503).json({ error: 'La búsqueda no está configurada en el servidor (falta YOUTUBE_API_KEY).' });
 }
 
 /** Valida la query del cliente y devuelve solo los parámetros admitidos. */
@@ -106,22 +106,22 @@ function validateSearchParams(query) {
 
   const { q, maxResults, pageToken, channel } = query;
   if (q !== undefined) {
-    if (typeof q !== 'string' || q.length > MAX_QUERY_LENGTH) return { error: 'Invalid q.' };
+    if (typeof q !== 'string' || q.length > MAX_QUERY_LENGTH) return { error: 'q inválido.' };
     if (q.trim()) params.q = q.trim();
   }
 
   if (maxResults !== undefined) {
     const n = Number(maxResults);
-    if (!Number.isInteger(n) || n < 1 || n > 50) return { error: 'maxResults must be between 1 and 50.' };
+    if (!Number.isInteger(n) || n < 1 || n > 50) return { error: 'maxResults debe estar entre 1 y 50.' };
     params.maxResults = n;
   }
 
-  if (!isValidPageToken(pageToken)) return { error: 'Invalid pageToken.' };
+  if (!isValidPageToken(pageToken)) return { error: 'pageToken inválido.' };
   if (pageToken) params.pageToken = pageToken;
 
   if (channel !== undefined && channel !== '') {
     if (typeof channel !== 'string' || !(CHANNEL_ID_RE.test(channel) || HANDLE_RE.test(channel))) {
-      return { error: 'Invalid channel: use a channel ID (UC…) or an @handle.' };
+      return { error: 'Canal inválido: usa un ID de canal (UC…) o un @handle.' };
     }
     params.channel = channel;
   }
@@ -129,34 +129,34 @@ function validateSearchParams(query) {
   for (const [name, allowed] of Object.entries(ENUM_PARAMS)) {
     const value = query[name];
     if (value === undefined || value === '') continue;
-    if (typeof value !== 'string' || !allowed.includes(value)) return { error: `Invalid ${name}.` };
+    if (typeof value !== 'string' || !allowed.includes(value)) return { error: `${name} inválido.` };
     params[name] = value;
   }
 
   for (const [name, pattern] of Object.entries(PATTERN_PARAMS)) {
     const value = query[name];
     if (value === undefined || value === '') continue;
-    if (typeof value !== 'string' || !pattern.test(value)) return { error: `Invalid ${name}.` };
+    if (typeof value !== 'string' || !pattern.test(value)) return { error: `${name} inválido.` };
     params[name] = value;
   }
 
   for (const name of ['publishedAfter', 'publishedBefore']) {
-    if (params[name] && Number.isNaN(Date.parse(params[name]))) return { error: `Invalid ${name}.` };
+    if (params[name] && Number.isNaN(Date.parse(params[name]))) return { error: `${name} inválido.` };
   }
   if (params.publishedAfter && params.publishedBefore
       && Date.parse(params.publishedAfter) > Date.parse(params.publishedBefore)) {
-    return { error: 'The "after" date is later than the "before" date.' };
+    return { error: 'La fecha "desde" es posterior a la fecha "hasta".' };
   }
 
   if (!!params.location !== !!params.locationRadius) {
-    return { error: 'location and locationRadius must be given together.' };
+    return { error: 'location y locationRadius deben indicarse juntos.' };
   }
   if (params.location) {
     const [lat, lng] = params.location.split(',').map(Number);
-    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return { error: 'location is out of range.' };
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return { error: 'location fuera de rango.' };
     params.location = `${lat},${lng}`;
     const [, amount, unit] = params.locationRadius.match(/^([\d.]+)(\w+)$/);
-    if (Number(amount) * KM_PER_UNIT[unit] > 1000) return { error: 'locationRadius cannot exceed 1000 km.' };
+    if (Number(amount) * KM_PER_UNIT[unit] > 1000) return { error: 'locationRadius no puede superar 1000 km.' };
   }
 
   return { params };
