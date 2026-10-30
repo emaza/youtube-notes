@@ -13,6 +13,7 @@
       My Notes
     </h2>
     <div class="flex items-center gap-2 shrink-0">
+        <app-speech-controls [owner]="this" [text]="notes()" [language]="language()" label="Escuchar notas" [disabled]="!notes().trim()" />
         <button
           (click)="formatted.set(!formatted())"
           (pointerdown)="$event.stopPropagation()"
