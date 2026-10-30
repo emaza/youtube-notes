@@ -30,7 +30,7 @@ import { SpeechService } from '../services/speech.service';
       }
 
       @for (msg of messages(); track $index) {
-        <div class="flex flex-col gap-1" [class.items-end]="msg.role === 'user'" [class.items-start]="msg.role === 'model'">
+        <div class="flex flex-col gap-1" data-message [class.items-end]="msg.role === 'user'" [class.items-start]="msg.role === 'model'">
           <div 
             class="max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-md group relative"
             [class.bg-purple-600]="msg.role === 'user'"
@@ -171,15 +171,28 @@ export class ChatListComponent {
     // Stop reading when the chat goes away (e.g. the video is closed).
     inject(DestroyRef).onDestroy(() => this.speech.stop());
 
-    // Auto-scroll effect
+    // Auto-scroll: after a question, go to the bottom (question + "thinking");
+    // when a new AI answer appears, show its start at the top and stop following
+    // the stream, so the beginning and the audio buttons stay in view.
+    let previousCount = 0;
     effect(() => {
-        const msgs = this.messages();
-        const thinking = this.isThinking(); // Track thinking to scroll when it starts
-        if (this.chatContainer) {
-            setTimeout(() => {
-                this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
-            }, 50);
+      const msgs = this.messages();
+      const thinking = this.isThinking();
+      const isNewMessage = msgs.length !== previousCount;
+      previousCount = msgs.length;
+      if (!this.chatContainer) return;
+
+      setTimeout(() => {
+        const container: HTMLElement = this.chatContainer.nativeElement;
+        if (thinking || msgs.at(-1)?.role === 'user') {
+          container.scrollTop = container.scrollHeight;
+        } else if (isNewMessage) {
+          const last = Array.from(container.querySelectorAll<HTMLElement>('[data-message]')).at(-1);
+          if (last) {
+            container.scrollTop += last.getBoundingClientRect().top - container.getBoundingClientRect().top - 16;
+          }
         }
+      }, 50);
     });
   }
 
