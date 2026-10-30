@@ -62,6 +62,7 @@ import { ChatListComponent } from './chat-list.component';
           class="flex-grow min-h-0 basis-0"
           [messages]="messages()"
           [isThinking]="isThinking()"
+          [isStreaming]="isStreaming()"
           [error]="error()"
         ></app-chat-list>
 
@@ -102,6 +103,7 @@ import { ChatListComponent } from './chat-list.component';
 export class AssistantComponent {
   messages = input.required<ChatMessage[]>();
   isThinking = input.required<boolean>();
+  isStreaming = input.required<boolean>();
   error = input.required<string | null>();
   showSummaryButton = input.required<boolean>();
   currentLanguage = input.required<string>();

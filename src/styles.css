@@ -48,3 +48,10 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(107, 114, 128, 1);
 }
+
+/* github-markdown-css brings its own page background and font size; blend into the chat bubble. */
+.markdown-body {
+  background-color: transparent;
+  color: inherit;
+  font-size: inherit;
+}

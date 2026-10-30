@@ -26,6 +26,7 @@ export class WorkspaceService {
   
   // UI State
   isAiThinking = signal(false);
+  isStreaming = signal(false);
   chatError = signal<string | null>(null);
   showSummaryButton = signal(true);
   
@@ -263,6 +264,7 @@ export class WorkspaceService {
     this.messages.update(p => [...p, { role: 'user', text }]);
     this.saveCurrentState();
     this.isAiThinking.set(true);
+    this.isStreaming.set(true);
     this.chatError.set(null);
 
     let streaming = false;
@@ -284,6 +286,7 @@ export class WorkspaceService {
       this.chatError.set(error.message || 'Error communicating with AI');
     } finally {
       this.isAiThinking.set(false);
+      this.isStreaming.set(false);
     }
   }
 

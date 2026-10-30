@@ -2,6 +2,7 @@
 import { Component, ChangeDetectionStrategy, input, ViewChild, ElementRef, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../services/gemini.service';
+import { markdownToHtml } from '../utils/markdown';
 
 @Component({
   selector: 'app-chat-list',
@@ -38,11 +39,20 @@ import { ChatMessage } from '../services/gemini.service';
             [class.rounded-br-none]="msg.role === 'user'"
             [class.rounded-bl-none]="msg.role === 'model'"
           >
-            <div [innerHTML]="formatMessage(msg.text)" class="select-text cursor-text leading-relaxed"></div>
-            
-            <!-- Copy Button (Only for Model) -->
-            @if (msg.role === 'model') {
-              <div class="mt-2 pt-2 border-t border-gray-600/50 flex justify-end">
+            @if (msg.role === 'model' && !(isStreaming() && $last) && !showRaw().has(msg)) {
+              <div [innerHTML]="toHtml(msg.text)" class="markdown-body select-text cursor-text"></div>
+            } @else {
+              <div class="whitespace-pre-wrap break-words select-text cursor-text leading-relaxed">{{ msg.text }}</div>
+            }
+
+            @if (msg.role === 'model' && !(isStreaming() && $last)) {
+              <div class="mt-2 pt-2 border-t border-gray-600/50 flex justify-end gap-1">
+                <button
+                  (click)="toggleRaw(msg)"
+                  class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-600/50"
+                >
+                  {{ showRaw().has(msg) ? 'Formatear respuesta' : 'Ver Markdown' }}
+                </button>
                 <button 
                   (click)="copyToClipboard(msg.text, $index)" 
                   class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-600/50"
@@ -101,6 +111,7 @@ import { ChatMessage } from '../services/gemini.service';
 export class ChatListComponent {
   messages = input.required<ChatMessage[]>();
   isThinking = input.required<boolean>();
+  isStreaming = input.required<boolean>();
   error = input.required<string | null>();
 
   // State to track which message was just copied
@@ -121,9 +132,18 @@ export class ChatListComponent {
     });
   }
 
-  formatMessage(text: string): string {
-    return text.replace(/\n/g, '<br>');
+  // Kept per message object: the final message object is stable once streaming ends.
+  showRaw = signal(new Set<ChatMessage>());
+
+  toggleRaw(msg: ChatMessage) {
+    this.showRaw.update(set => {
+      const next = new Set(set);
+      if (!next.delete(msg)) next.add(msg);
+      return next;
+    });
   }
+
+  toHtml = markdownToHtml;
 
   async copyToClipboard(text: string, index: number) {
     try {
