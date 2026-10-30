@@ -6,12 +6,14 @@ conversaciones se guardan en el navegador (localStorage) y se pueden exportar/im
 ## Arquitectura
 
 ```
-Navegador (Angular)  ──POST /api/chat──▶  server/index.js (Express)  ──▶  Gemini API
-                                             └─ GEMINI_API_KEY (solo aquí)
+Navegador (Angular)  ──POST /api/chat─────▶  server/index.js (Express)  ──▶  Gemini API
+                     ──GET  /api/comments─▶     ├─ GEMINI_API_KEY      ──▶  YouTube Data API v3
+                                                └─ YOUTUBE_API_KEY  (solo aquí)
 ```
 
-La API key **nunca** llega al navegador: el frontend llama a `/api/chat` en el
-propio servidor, que valida la petición, aplica límites y llama a Gemini.
+Las API keys **nunca** llegan al navegador: el frontend llama a `/api/chat` y
+`/api/comments` en el propio servidor, que valida la petición, aplica límites y
+llama a Gemini o a YouTube.
 
 Protecciones del servidor:
 
@@ -34,6 +36,20 @@ npm run dev                  # API en :8080 + Angular en http://localhost:3000
 
 Consigue la API key en <https://aistudio.google.com/apikey>.
 
+### Comentarios de YouTube (opcional)
+
+La pestaña *Comments* muestra los comentarios del vídeo usando la YouTube Data API v3.
+Para activarla:
+
+1. En [Google Cloud Console](https://console.cloud.google.com/apis/library/youtube.googleapis.com)
+   habilita **YouTube Data API v3** en tu proyecto.
+2. En *APIs y servicios → Credenciales* crea una API key (recomendado: restríngela a
+   la YouTube Data API v3).
+3. Añádela a `.env.local` como `YOUTUBE_API_KEY`.
+
+Cada petición (página de comentarios o de respuestas) gasta 1 unidad de la cuota
+diaria gratuita de 10.000. Sin `YOUTUBE_API_KEY` el resto de la app funciona igual.
+
 ## Producción
 
 ```bash
@@ -47,6 +63,7 @@ GEMINI_API_KEY=... APP_PASSWORD=... npm start   # http://localhost:8080
 | --- | --- | --- | --- |
 | `GEMINI_API_KEY` | sí | — | Clave de la API de Gemini |
 | `APP_PASSWORD` | no | (sin contraseña) | Activa usuario/contraseña para toda la app (el usuario puede ser cualquiera) |
+| `YOUTUBE_API_KEY` | no | (sin comentarios) | Clave de la YouTube Data API v3 para mostrar los comentarios |
 | `GEMINI_MODEL` | no | `gemini-flash-latest` | Modelo a usar |
 | `RATE_LIMIT_PER_MINUTE` | no | `10` | Peticiones a la IA por IP y minuto |
 | `RATE_LIMIT_PER_DAY` | no | `200` | Peticiones a la IA por IP y día |
