@@ -89,12 +89,18 @@ export class WorkspaceService {
   constructor() {
     this.initializeLanguage();
     this.refreshSavedVideos();
-    this.checkUrlParams();
+    this.loadFromUrl();
+
+    // Back/forward: the URL has already changed, so restore the state it describes.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('popstate', () => this.loadFromUrl());
+    }
   }
 
   // --- URL Management ---
 
-  private checkUrlParams() {
+  /** Opens the video in the URL (?v=&type=), or the session list when there is none. */
+  private loadFromUrl() {
     if (typeof window === 'undefined') return;
 
     const params = new URLSearchParams(window.location.search);
@@ -107,6 +113,8 @@ export class WorkspaceService {
       // Reconstruct a valid YouTube URL to trigger the loading logic
       const baseUrl = type === 'short' ? 'https://www.youtube.com/shorts/' : 'https://www.youtube.com/watch?v=';
       this.loadVideo(`${baseUrl}${vId}`, undefined, type);
+    } else if (this.videoId()) {
+      this.resetWorkspace();
     }
   }
 
@@ -116,7 +124,7 @@ export class WorkspaceService {
     const url = new URL(window.location.href);
     url.searchParams.set('v', videoId);
     url.searchParams.set('type', type);
-    window.history.replaceState({}, '', url.toString());
+    this.setBrowserUrl(url);
   }
 
   private clearBrowserUrl() {
@@ -125,7 +133,17 @@ export class WorkspaceService {
     const url = new URL(window.location.href);
     url.searchParams.delete('v');
     url.searchParams.delete('type');
-    window.history.replaceState({}, '', url.toString());
+    this.setBrowserUrl(url);
+  }
+
+  /**
+   * Adds a history entry so back/forward work, but only when the URL actually
+   * changes: on first load, after back/forward (URL already updated) or while
+   * typing a partial link, nothing is pushed.
+   */
+  private setBrowserUrl(url: URL) {
+    if (url.href === window.location.href) return;
+    window.history.pushState({}, '', url.toString());
   }
 
   // --- Actions ---
