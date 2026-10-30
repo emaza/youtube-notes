@@ -3,17 +3,20 @@ import { Component, ChangeDetectionStrategy, signal, inject, computed } from '@a
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { WorkspaceService } from './services/workspace.service';
+import { SessionListService } from './services/session-list.service';
 import { StorageService, SavedVideoSummary } from './services/storage.service';
 import { PwaService } from './services/pwa.service';
-import { ConfirmationModalComponent } from './components/confirmation-modal.component';
-import { HeaderComponent } from './components/header.component';
-import { SessionListComponent } from './components/session-list.component';
-import { VideoPlayerComponent } from './components/video-player.component';
-import { AssistantComponent } from './components/assistant.component';
-import { NotesComponent } from './components/notes.component';
-import { SettingsModalComponent } from './components/settings-modal.component';
-import { CommentsComponent } from './components/comments.component';
+import { ConfirmationModalComponent } from './components/confirmation-modal/confirmation-modal.component';
+import { HeaderComponent } from './components/header/header.component';
+import { SessionListComponent } from './components/session-list/session-list.component';
+import { VideoPlayerComponent } from './components/video-player/video-player.component';
+import { AssistantComponent } from './components/assistant/assistant.component';
+import { NotesComponent } from './components/notes/notes.component';
+import { SettingsModalComponent } from './components/settings-modal/settings-modal.component';
+import { CommentsComponent } from './components/comments/comments.component';
 import { PersistPanelDirective } from './directives/persist-panel.directive';
+import { buildVideoUrl } from './utils/youtube';
+import { LANGUAGES } from './utils/languages';
 
 @Component({
   selector: 'app-root',
@@ -36,6 +39,7 @@ import { PersistPanelDirective } from './directives/persist-panel.directive';
 export class AppComponent {
   // Services
   workspace = inject(WorkspaceService);
+  sessions = inject(SessionListService);
   storageService = inject(StorageService);
   pwaService = inject(PwaService);
 
@@ -51,14 +55,7 @@ export class AppComponent {
   layout = computed(() => this.isShort() ? 'short' : 'video');
   
   // Constants
-  availableLanguages = [
-    { code: 'es', name: 'Español' },
-    { code: 'en', name: 'English' },
-    { code: 'fr', name: 'Français' },
-    { code: 'de', name: 'Deutsch' },
-    { code: 'pt', name: 'Português' },
-    { code: 'it', name: 'Italiano' }
-  ];
+  availableLanguages = LANGUAGES;
 
   // --- Handlers ---
 
@@ -67,8 +64,7 @@ export class AppComponent {
   }
 
   loadSavedVideo(summary: SavedVideoSummary) {
-    const baseUrl = summary.type === 'short' ? 'https://www.youtube.com/shorts/' : 'https://www.youtube.com/watch?v=';
-    this.workspace.loadVideo(`${baseUrl}${summary.videoId}`, summary.title, summary.type);
+    this.workspace.loadVideo(buildVideoUrl(summary.videoId, summary.type), summary.title, summary.type);
   }
 
   openDeleteModal(videoId: string) {
@@ -114,7 +110,7 @@ export class AppComponent {
       try {
         const content = e.target?.result as string;
         const count = this.storageService.restoreBackupData(content);
-        this.workspace.refreshSavedVideos();
+        this.sessions.refresh();
         
         this.importStatusMessage.set(`Successfully restored ${count} sessions.`);
         

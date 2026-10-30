@@ -1,10 +1,14 @@
-
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { GeminiService, ChatMessage } from './gemini.service';
-import { StorageService, SavedVideoSummary, VideoType } from './storage.service';
+import { StorageService, VideoType } from './storage.service';
+import { SessionListService } from './session-list.service';
+import { BrowserUrlService } from './browser-url.service';
+import { extractVideoId, buildVideoUrl, watchUrl } from '../utils/youtube';
+import { DEFAULT_LANGUAGE, isSupportedLanguage } from '../utils/languages';
 
+/** The open video: its notes, AI chat and metadata, plus the answer language. */
 @Injectable({
   providedIn: 'root'
 })
@@ -12,151 +16,44 @@ export class WorkspaceService {
   private http: HttpClient = inject(HttpClient);
   private geminiService = inject(GeminiService);
   private storageService = inject(StorageService);
+  private sessions = inject(SessionListService);
+  private browserUrl = inject(BrowserUrlService);
 
-  // --- State Signals ---
+  // --- State ---
+
   youtubeUrl = signal<string>('');
   notes = signal<string>('');
   messages = signal<ChatMessage[]>([]);
-  
+
   // Metadata
   currentVideoTitle = signal<string>('');
   currentChannelTitle = signal<string>('');
   currentChannelUrl = signal<string>('');
   currentVideoType = signal<VideoType>('video');
-  
-  // UI State
+
+  // Chat UI state
   isAiThinking = signal(false);
   isStreaming = signal(false);
   chatError = signal<string | null>(null);
   showSummaryButton = signal(true);
-  
-  // Settings
-  currentLanguage = signal<string>('es');
-  
-  // Collection State
-  savedVideos = signal<SavedVideoSummary[]>([]);
-  searchQuery = signal<string>('');
-  typeFilter = signal<'all' | 'video' | 'short'>('all');
-  currentPage = signal(1);
-  readonly ITEMS_PER_PAGE = 12;
 
-  // --- Computed ---
+  // Settings
+  currentLanguage = signal<string>(DEFAULT_LANGUAGE);
+
   videoId = computed(() => {
     const url = this.youtubeUrl();
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2] && match[2].length === 11) ? match[2] : null;
-  });
-
-  filteredVideos = computed(() => {
-    const query = this.searchQuery().toLowerCase().trim();
-    const type = this.typeFilter();
-    let items = this.savedVideos();
-    
-    if (type !== 'all') {
-      items = items.filter(v => v.type === type);
-    }
-
-    if (!query) return items;
-
-    return items.filter(v => 
-      v.title.toLowerCase().includes(query) || 
-      (v.channelTitle && v.channelTitle.toLowerCase().includes(query))
-    );
-  });
-
-  totalPages = computed(() => Math.ceil(this.filteredVideos().length / this.ITEMS_PER_PAGE));
-  
-  paginatedVideos = computed(() => {
-    const videos = this.filteredVideos();
-    const total = this.totalPages();
-    let page = this.currentPage();
-
-    // Defensive check: If current page is beyond total pages (e.g. after filtering), use page 1 for slicing
-    if (page > total && total > 0) {
-      page = 1;
-    }
-
-    const startIndex = (page - 1) * this.ITEMS_PER_PAGE;
-    
-    // Safety check
-    if (videos.length === 0) return [];
-    
-    return videos.slice(startIndex, startIndex + this.ITEMS_PER_PAGE);
+    return url ? extractVideoId(url) : null;
   });
 
   constructor() {
     this.initializeLanguage();
-    this.refreshSavedVideos();
     this.loadFromUrl();
 
     // Back/forward: the URL has already changed, so restore the state it describes.
-    if (typeof window !== 'undefined') {
-      window.addEventListener('popstate', () => this.loadFromUrl());
-    }
+    this.browserUrl.onNavigate(() => this.loadFromUrl());
   }
 
-  // --- URL Management ---
-
-  /** Opens the video in the URL (?v=&type=), or the session list when there is none. */
-  private loadFromUrl() {
-    if (typeof window === 'undefined') return;
-
-    const params = new URLSearchParams(window.location.search);
-    const vId = params.get('v');
-    const typeParam = params.get('type');
-    // Validate type
-    const type: VideoType = (typeParam === 'short' || typeParam === 'video') ? typeParam : 'video';
-
-    if (vId) {
-      // Reconstruct a valid YouTube URL to trigger the loading logic
-      const baseUrl = type === 'short' ? 'https://www.youtube.com/shorts/' : 'https://www.youtube.com/watch?v=';
-      this.loadVideo(`${baseUrl}${vId}`, undefined, type);
-    } else if (this.videoId()) {
-      this.resetWorkspace();
-    }
-  }
-
-  private updateBrowserUrl(videoId: string, type: VideoType) {
-    if (typeof window === 'undefined') return;
-    
-    const url = new URL(window.location.href);
-    url.searchParams.set('v', videoId);
-    url.searchParams.set('type', type);
-    this.setBrowserUrl(url);
-  }
-
-  private clearBrowserUrl() {
-    if (typeof window === 'undefined') return;
-    
-    const url = new URL(window.location.href);
-    url.searchParams.delete('v');
-    url.searchParams.delete('type');
-    this.setBrowserUrl(url);
-  }
-
-  /**
-   * Adds a history entry so back/forward work, but only when the URL actually
-   * changes: on first load, after back/forward (URL already updated) or while
-   * typing a partial link, nothing is pushed.
-   */
-  private setBrowserUrl(url: URL) {
-    if (url.href === window.location.href) return;
-    window.history.pushState({}, '', url.toString());
-  }
-
-  // --- Actions ---
-
-  setSearchQuery(query: string) {
-    this.searchQuery.set(query);
-    this.currentPage.set(1);
-  }
-
-  setTypeFilter(type: 'all' | 'video' | 'short') {
-    this.typeFilter.set(type);
-    this.currentPage.set(1);
-  }
+  // --- Language ---
 
   initializeLanguage() {
     const saved = this.storageService.getAppSettings();
@@ -164,31 +61,36 @@ export class WorkspaceService {
       this.currentLanguage.set(saved.language);
     } else if (typeof navigator !== 'undefined') {
       const browserLang = navigator.language.split('-')[0];
-      const supported = ['es', 'en', 'fr', 'de', 'pt', 'it'];
-      this.currentLanguage.set(supported.includes(browserLang) ? browserLang : 'es');
+      this.currentLanguage.set(isSupportedLanguage(browserLang) ? browserLang : DEFAULT_LANGUAGE);
     }
   }
 
   setLanguage(lang: string) {
     this.currentLanguage.set(lang);
     this.storageService.saveAppSettings({ language: lang });
-    
+
     // Restart chat context if active
     const vId = this.videoId();
     if (vId) {
-      this.geminiService.startChat(
-        `https://www.youtube.com/watch?v=${vId}`, vId, this.currentVideoTitle(), this.messages(), lang
-      );
+      this.geminiService.startChat(watchUrl(vId), vId, this.currentVideoTitle(), this.messages(), lang);
     }
   }
 
-  refreshSavedVideos() {
-    this.savedVideos.set(this.storageService.getAllSavedVideos());
+  // --- Navigation ---
+
+  /** Opens the video in the URL (?v=&type=), or the session list when there is none. */
+  private loadFromUrl() {
+    const fromUrl = this.browserUrl.read();
+    if (fromUrl) {
+      this.loadVideo(buildVideoUrl(fromUrl.videoId, fromUrl.type), undefined, fromUrl.type);
+    } else if (this.videoId()) {
+      this.resetWorkspace();
+    }
   }
 
   async loadVideo(url: string, knownTitle?: string, knownType?: VideoType) {
     this.youtubeUrl.set(url);
-    
+
     // Determine Type logic
     // We check URL pattern, but we don't set the signal yet if it's a new video
     // because resetWorkspace() below would overwrite it to 'video'.
@@ -201,15 +103,14 @@ export class WorkspaceService {
       return;
     }
 
-    // Update Browser URL
-    this.updateBrowserUrl(vId, finalType);
+    this.browserUrl.showVideo(vId, finalType);
 
     // Load Data
     this.chatError.set(null);
     this.showSummaryButton.set(true);
-    
+
     const savedData = this.storageService.getVideoData(vId);
-    
+
     if (savedData) {
       this.notes.set(savedData.notes);
       this.messages.set(savedData.messages);
@@ -220,7 +121,7 @@ export class WorkspaceService {
     } else {
       this.resetWorkspace(false); // Don't clear URL
       // Set type AFTER reset, otherwise resetWorkspace sets it to 'video'
-      this.currentVideoType.set(finalType); 
+      this.currentVideoType.set(finalType);
       this.currentVideoTitle.set(knownTitle || '');
     }
 
@@ -232,19 +133,44 @@ export class WorkspaceService {
     // Start Session
     if (this.currentVideoTitle()) {
       this.saveCurrentState();
-      this.refreshSavedVideos();
+      this.sessions.refresh();
     }
 
-    this.geminiService.startChat(
-      `https://www.youtube.com/watch?v=${vId}`, vId, this.currentVideoTitle(), this.messages(), this.currentLanguage()
-    );
+    this.geminiService.startChat(watchUrl(vId), vId, this.currentVideoTitle(), this.messages(), this.currentLanguage());
   }
+
+  resetWorkspace(clearUrl = true) {
+    if (clearUrl) {
+      this.youtubeUrl.set('');
+      this.browserUrl.clear();
+    }
+    this.messages.set([]);
+    this.notes.set('');
+    this.currentVideoTitle.set('');
+    this.currentChannelTitle.set('');
+    this.currentChannelUrl.set('');
+    this.chatError.set(null);
+    this.showSummaryButton.set(true);
+    this.currentVideoType.set('video');
+    this.sessions.currentPage.set(1);
+  }
+
+  deleteVideo(id: string) {
+    this.storageService.deleteVideoData(id);
+    this.sessions.refresh();
+    if (this.videoId() === id) {
+      this.youtubeUrl.set('');
+      this.resetWorkspace();
+    }
+  }
+
+  // --- Metadata and persistence ---
 
   private async fetchMetadata(vId: string) {
     try {
-      const oembedUrl = `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${vId}`;
+      const oembedUrl = `https://noembed.com/embed?url=${watchUrl(vId)}`;
       const data: any = await firstValueFrom(this.http.get(oembedUrl));
-      
+
       if (data.title) this.currentVideoTitle.set(data.title);
       if (data.author_name) {
         this.currentChannelTitle.set(data.author_name);
@@ -260,9 +186,9 @@ export class WorkspaceService {
     if (!vId) return;
 
     this.storageService.saveVideoData(
-      vId, 
-      this.currentVideoTitle(), 
-      this.notes(), 
+      vId,
+      this.currentVideoTitle(),
+      this.notes(),
       this.messages(),
       this.currentChannelTitle(),
       this.currentChannelUrl(),
@@ -270,10 +196,14 @@ export class WorkspaceService {
     );
   }
 
+  // --- Notes ---
+
   updateNotes(text: string) {
     this.notes.set(text);
     this.saveCurrentState();
   }
+
+  // --- Chat ---
 
   async sendMessage(text: string) {
     const vId = this.videoId();
@@ -311,30 +241,5 @@ export class WorkspaceService {
   async generateSummary() {
     this.showSummaryButton.set(false);
     await this.sendMessage("Generate a detailed summary of this video.");
-  }
-
-  deleteVideo(id: string) {
-    this.storageService.deleteVideoData(id);
-    this.refreshSavedVideos();
-    if (this.videoId() === id) {
-      this.youtubeUrl.set('');
-      this.resetWorkspace();
-    }
-  }
-
-  resetWorkspace(clearUrl = true) {
-    if (clearUrl) {
-      this.youtubeUrl.set('');
-      this.clearBrowserUrl();
-    }
-    this.messages.set([]);
-    this.notes.set('');
-    this.currentVideoTitle.set('');
-    this.currentChannelTitle.set('');
-    this.currentChannelUrl.set('');
-    this.chatError.set(null);
-    this.showSummaryButton.set(true);
-    this.currentVideoType.set('video');
-    this.currentPage.set(1);
   }
 }
