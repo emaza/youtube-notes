@@ -46,6 +46,9 @@ if (!API_KEY) {
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 const app = express();
 const distDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
+// Solo en producción se sirve la app compilada; en desarrollo la sirve `ng serve`
+// (puerto 3000) y este servidor es solo la API.
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Necesario detrás de proxies (Cloud Run, Render, Fly...) para que el rate limit
 // use la IP real del cliente.
@@ -197,7 +200,7 @@ app.get('/api/config', (_req, res) => {
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'No encontrado' }));
 
-if (existsSync(distDir)) {
+if (IS_PRODUCTION && existsSync(distDir)) {
   app.use(express.static(distDir, {
     index: false,
     setHeaders(res, filePath) {
