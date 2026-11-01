@@ -1,0 +1,64 @@
+name: Bump Version
+
+# On every push to main: bump the package.json version (feat -> minor, anything else ->
+# patch), tag it and merge main back into dev, so both branches show the same version.
+on:
+  push:
+    branches:
+      - main
+
+concurrency: version-bump
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    # Our own bump commits carry [skip ci] (pushes with GITHUB_TOKEN don't trigger workflows anyway).
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Determine bump type
+        id: bump
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          # main receives merges from dev, so look at every commit in the push, not just the
+          # merge commit on top. A new branch has no "before": use the last commit only.
+          if [[ "$BEFORE" =~ ^0+$ ]]; then
+            SUBJECTS=$(git log -1 --format=%s "$AFTER")
+          else
+            SUBJECTS=$(git log --no-merges --format=%s "$BEFORE..$AFTER")
+          fi
+          echo "$SUBJECTS"
+          if grep -qE '^feat(\(.+\))?!?: ' <<< "$SUBJECTS"; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump version on main
+        id: version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Commit + tag vX.Y.Z; main has no branch protection, so the bot pushes it directly.
+          npm version ${{ steps.bump.outputs.type }} -m "chore(release): bump version to %s [skip ci]"
+          git push origin HEAD:main --follow-tags
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Sync dev with main
+        run: |
+          git fetch origin dev
+          git switch dev
+          git merge --no-edit -m "chore: sync dev with main after v${{ steps.version.outputs.version }} [skip ci]" origin/main
+          git push origin dev

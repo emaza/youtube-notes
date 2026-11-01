@@ -3,6 +3,7 @@ import { Component, ChangeDetectionStrategy, input, output, inject, signal, effe
 import { CommonModule } from '@angular/common';
 import { StorageService } from '../../services/storage.service';
 import { SearchCacheService, MAX_SEARCH_CACHE_SIZE } from '../../services/search-cache.service';
+import { APP_VERSION } from '../../utils/version';
 
 @Component({
   selector: 'app-settings-modal',
@@ -15,6 +16,7 @@ export class SettingsModalComponent {
   private storageService = inject(StorageService);
   searchCache = inject(SearchCacheService);
   readonly maxSearchCacheSize = MAX_SEARCH_CACHE_SIZE;
+  readonly version = APP_VERSION;
 
   isOpen = input.required<boolean>();
   currentLanguage = input.required<string>();
