@@ -42,7 +42,9 @@
 </header>
 
 <!-- URL / Search Input -->
-<div #searchBox class="relative mb-8 flex-shrink-0 w-full max-w-4xl mx-auto z-[70]">
+<!-- Raised only while the advanced panel is open (it must cover the content below);
+     otherwise the floating panels (z-30..50, and above when brought to front) can go over it. -->
+<div #searchBox class="relative mb-8 flex-shrink-0 w-full max-w-4xl mx-auto" [style.z-index]="isAdvancedOpen() ? 70 : null">
   <div class="relative">
     <!-- Simple search -->
     <button
