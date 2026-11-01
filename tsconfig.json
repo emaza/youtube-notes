@@ -14,7 +14,8 @@
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
-    "strict": false
+    "strict": false,
+    "resolveJsonModule": true
   },
   "files": [
     "./index.tsx"
