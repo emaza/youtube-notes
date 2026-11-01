@@ -1,10 +1,11 @@
 
-import { Component, ChangeDetectionStrategy, input, ViewChild, ElementRef, effect, signal, inject, DestroyRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, ViewChild, ElementRef, effect, signal, computed, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChatMessage } from '../../services/gemini.service';
 import { markdownToHtml } from '../../utils/markdown';
 import { SpeechService } from '../../services/speech.service';
 import { SpeechControlsComponent } from '../speech-controls/speech-controls.component';
+import { markdownSlice, rangeOffsets, rangeText } from '../../utils/speech-text';
 
 @Component({
   selector: 'app-chat-list',
@@ -69,6 +70,8 @@ export class ChatListComponent {
   showRaw = signal(new Set<ChatMessage>());
 
   toggleRaw(msg: ChatMessage) {
+    // The answer is rendered again, so a start point in it would be left behind.
+    if (this.startPassage()?.msg === msg) this.speech.clearStartPoint();
     this.showRaw.update(set => {
       const next = new Set(set);
       if (!next.delete(msg)) next.add(msg);
@@ -77,6 +80,19 @@ export class ChatListComponent {
   }
 
   toHtml = markdownToHtml;
+
+  /** The answer the user clicked or selected in, and its text from there. */
+  startPassage = computed(() => {
+    const point = this.speech.startPoint();
+    if (!point?.el.isConnected || !this.chatContainer?.nativeElement.contains(point.el)) return null;
+    const msg = this.messages()[Number(point.el.dataset['speechText'])];
+    if (!msg) return null;
+    if ('speechRaw' in point.el.dataset) {
+      const offsets = rangeOffsets(point.el, point.range);
+      return { msg, passage: offsets && markdownSlice(msg.text, ...offsets) };
+    }
+    return { msg, passage: rangeText(point.el, point.range) };
+  });
 
   async copyToClipboard(text: string, index: number) {
     try {
