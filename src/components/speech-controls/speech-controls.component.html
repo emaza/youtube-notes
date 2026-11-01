@@ -1,11 +1,11 @@
 <!-- pointerdown is stopped so the buttons don't start dragging a panel they sit on. -->
 @if (speech.supported) {
-  @if (speech.speaking() === owner()) {
+  @if (isPlaying()) {
     @if (speech.paused()) {
       <button
         (click)="speech.resume()"
         (pointerdown)="$event.stopPropagation()"
-        class="p-1.5 rounded-full text-white bg-gray-600/50 hover:bg-gray-600 transition-colors"
+        class="shrink-0 p-1.5 rounded-full text-white bg-gray-600/50 hover:bg-gray-600 transition-colors"
         title="Play"
         aria-label="Play audio"
       >
@@ -15,7 +15,7 @@
       <button
         (click)="speech.pause()"
         (pointerdown)="$event.stopPropagation()"
-        class="p-1.5 rounded-full text-white bg-gray-600/50 hover:bg-gray-600 transition-colors"
+        class="shrink-0 p-1.5 rounded-full text-white bg-gray-600/50 hover:bg-gray-600 transition-colors"
         title="Pause"
         aria-label="Pause audio"
       >
@@ -25,7 +25,7 @@
     <button
       (click)="speech.stop()"
       (pointerdown)="$event.stopPropagation()"
-      class="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-600/50 transition-colors"
+      class="shrink-0 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-600/50 transition-colors"
       title="Stop"
       aria-label="Stop audio"
     >
@@ -33,14 +33,37 @@
     </button>
   } @else {
     <button
-      (click)="speech.speak(owner(), text(), language())"
+      (click)="play()"
       (pointerdown)="$event.stopPropagation()"
       [disabled]="disabled()"
-      class="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-600/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent"
+      class="shrink-0 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-600/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 disabled:hover:bg-transparent"
       title="Play"
       aria-label="Play audio"
     >
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
     </button>
+  }
+
+  @if (label(); as l) {
+    <span class="text-xs text-gray-400 truncate min-w-0" [title]="l.preview">
+      @if (l.to) {
+        From <span class="text-gray-200">“{{ l.from }}”</span> to <span class="text-gray-200">“{{ l.to }}”</span>
+      } @else if (l.toEnd) {
+        From <span class="text-gray-200">“{{ l.from }}”</span> to the end
+      } @else {
+        Only <span class="text-gray-200">“{{ l.from }}”</span>
+      }
+    </span>
+    @if (!isPlaying()) {
+      <button
+        (click)="clearStart.emit()"
+        (pointerdown)="$event.stopPropagation()"
+        class="p-0.5 rounded-full text-gray-500 hover:text-white hover:bg-gray-600/50 transition-colors shrink-0"
+        title="Read from the beginning"
+        aria-label="Read from the beginning"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+      </button>
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { markdownToHtml } from '../utils/markdown';
+import { markdownToText, wordRangeAt } from '../utils/speech-text';
 
 // App language code (settings) -> BCP 47 tag for the speech engine.
 const SPEECH_LANGS: Record<string, string> = {
@@ -14,6 +14,15 @@ const SPEECH_LANGS: Record<string, string> = {
 // Chrome stops long utterances (~15 s with remote voices), so text is read in chunks.
 const MAX_CHUNK_CHARS = 200;
 
+// CSS highlight painting the clicked word in read-only texts, which show no caret.
+const START_HIGHLIGHT = 'speech-start';
+
+/** Where the user last clicked or selected inside a readable text (`[data-speech-text]`). */
+export interface SpeechStartPoint {
+  el: HTMLElement;
+  range: Range;
+}
+
 /** Reads text aloud with the browser's SpeechSynthesis, one owner at a time. */
 @Injectable({
   providedIn: 'root'
@@ -23,8 +32,20 @@ export class SpeechService {
   /** What is being read right now (e.g. a chat message), or null. */
   readonly speaking = signal<object | null>(null);
   readonly paused = signal(false);
+  /** Kept when the selection moves elsewhere (e.g. to the Play button). */
+  readonly startPoint = signal<SpeechStartPoint | null>(null);
 
-  async speak(owner: object, markdown: string, language: string) {
+  constructor() {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('selectionchange', () => this.onSelectionChange());
+    }
+  }
+
+  speak(owner: object, markdown: string, language: string) {
+    return this.speakText(owner, markdownToText(markdown), language);
+  }
+
+  async speakText(owner: object, text: string, language: string) {
     if (!this.supported) return;
     this.stop();
     this.speaking.set(owner);
@@ -34,7 +55,7 @@ export class SpeechService {
     // Stopped or replaced while waiting for the voices to load.
     if (this.speaking() !== owner) return;
 
-    const chunks = splitIntoChunks(markdownToText(markdown));
+    const chunks = splitIntoChunks(text);
     if (chunks.length === 0) {
       this.speaking.set(null);
       return;
@@ -69,6 +90,30 @@ export class SpeechService {
     this.paused.set(false);
   }
 
+  /** Forget the start point, so the next reading starts from the beginning. */
+  clearStartPoint() {
+    this.startPoint.set(null);
+    this.markStart(null);
+  }
+
+  private onSelectionChange() {
+    const selection = document.getSelection();
+    if (!selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const node = range.startContainer;
+    const el = (node instanceof Element ? node : node.parentElement)?.closest<HTMLElement>('[data-speech-text]');
+    if (!el) return;
+    this.startPoint.set({ el, range: range.cloneRange() });
+    // A selection is already visible; a click only gets a collapsed, invisible one.
+    this.markStart(range.collapsed ? wordRangeAt(range) : null);
+  }
+
+  private markStart(word: Range | null) {
+    if (typeof CSS === 'undefined' || !CSS.highlights) return;
+    if (word) CSS.highlights.set(START_HIGHLIGHT, new Highlight(word));
+    else CSS.highlights.delete(START_HIGHLIGHT);
+  }
+
   private finish(owner: object) {
     if (this.speaking() !== owner) return;
     this.speaking.set(null);
@@ -92,15 +137,6 @@ export class SpeechService {
       ?? matching.find(v => v.localService)
       ?? matching[0];
   }
-}
-
-/** Plain text of rendered Markdown, so symbols and link URLs aren't read aloud. */
-function markdownToText(markdown: string): string {
-  const el = document.createElement('div');
-  el.innerHTML = markdownToHtml(markdown);
-  // Keep block boundaries as line breaks so chunks split on them.
-  el.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, br, tr, pre, blockquote').forEach(node => node.append('\n'));
-  return el.textContent ?? '';
 }
 
 function splitIntoChunks(text: string): string[] {
