@@ -30,3 +30,7 @@ dist-ssr
 
 # Angular cache
 .angular
+
+# Playwright
+test-results/
+playwright-report/

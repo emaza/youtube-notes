@@ -28,7 +28,11 @@
 
   <!-- Comments List -->
   <div class="flex-grow overflow-y-auto custom-scrollbar bg-gray-900/40 min-h-0 p-4 space-y-4">
-    @if (disabled()) {
+    @if (!requested()) {
+      <div class="text-center py-8">
+        <button (click)="requestLoad()" class="text-sm px-4 py-1.5 rounded-md bg-gray-700 text-white hover:bg-gray-600 cursor-pointer">Load comments</button>
+      </div>
+    } @else if (disabled()) {
       <p class="text-sm text-gray-400 text-center py-8">Comments are turned off for this video.</p>
     } @else if (error() && comments().length === 0) {
       <div class="text-sm text-red-400 text-center py-8 space-y-3">
