@@ -36,6 +36,8 @@ export class CommentsComponent {
   nextPageToken = signal<string | null>(null);
   loading = signal(false);
   loaded = signal(false);
+  /** True once the user has asked to load comments for the current video. */
+  requested = signal(false);
   error = signal<string | null>(null);
   disabled = signal(false);
   replies = signal<Record<string, RepliesState>>({});
@@ -44,15 +46,34 @@ export class CommentsComponent {
   private requestId = 0;
 
   constructor() {
+    // Navigating to another video goes back to the initial state: nothing is fetched until requested.
     effect(() => {
       this.videoId();
-      this.order();
-      untracked(() => this.reload());
+      untracked(() => this.reset());
     });
   }
 
   setOrder(order: CommentsOrder) {
+    if (order === this.order()) return;
     this.order.set(order);
+    if (this.requested()) this.reload();
+  }
+
+  requestLoad() {
+    this.requested.set(true);
+    this.reload();
+  }
+
+  private reset() {
+    this.requestId++;
+    this.requested.set(false);
+    this.comments.set([]);
+    this.nextPageToken.set(null);
+    this.replies.set({});
+    this.disabled.set(false);
+    this.loaded.set(false);
+    this.loading.set(false);
+    this.error.set(null);
   }
 
   reload() {
