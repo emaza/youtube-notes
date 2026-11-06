@@ -79,7 +79,7 @@ export class WorkspaceService {
   // --- Navigation ---
 
   /**
-   * Opens the video in the URL (?v=&type=); when there is none, closes the open
+   * Opens the video in the URL (/watch?v=, /shorts/ID); when there is none, closes the open
    * video without touching the URL (it may hold a search).
    */
   private loadFromUrl() {

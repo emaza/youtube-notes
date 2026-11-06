@@ -1,10 +1,14 @@
 import { Injectable } from '@angular/core';
 import { VideoType } from './storage.service';
-import { SEARCH_FILTER_KEYS, SearchFilters, parseFilters, serializeFilters } from '../utils/search';
+import { SearchFilters, parseFilters, serializeFilters } from '../utils/search';
+
+// Like YouTube: a video at /watch?v=ID, a short at /shorts/ID; search and home at /.
+const WATCH_PATH = '/watch';
+const SHORTS_PATH_RE = /^\/shorts\/([\w-]{11})\/?$/;
 
 /**
- * Keeps the open video (?v=&type=) or the active search (?q=&order=…) in the
- * browser URL and its history.
+ * Keeps the open video (/watch?v=, /shorts/ID) or the active search (/?q=&order=…)
+ * in the browser URL and its history.
  */
 @Injectable({
   providedIn: 'root'
@@ -12,17 +16,21 @@ import { SEARCH_FILTER_KEYS, SearchFilters, parseFilters, serializeFilters } fro
 export class BrowserUrlService {
   private readonly available = typeof window !== 'undefined';
 
-  /** The video in the current URL, or null when there is none. */
+  /**
+   * The video in the current URL, or null when there is none. Old links
+   * (/?v=…&type=video|short) are rewritten to /watch or /shorts, without a new history entry.
+   */
   read(): { videoId: string; type: VideoType } | null {
     if (!this.available) return null;
 
+    const short = SHORTS_PATH_RE.exec(window.location.pathname);
     const params = new URLSearchParams(window.location.search);
-    const videoId = params.get('v');
+    const videoId = short?.[1] ?? params.get('v');
     if (!videoId) return null;
 
-    const typeParam = params.get('type');
-    // Validate type
-    const type: VideoType = (typeParam === 'short' || typeParam === 'video') ? typeParam : 'video';
+    const type: VideoType = short || params.get('type') === 'short' ? 'short' : 'video';
+    const canonical = this.videoUrl(videoId, type);
+    if (canonical.href !== window.location.href) window.history.replaceState(window.history.state, '', canonical);
     return { videoId, type };
   }
 
@@ -34,36 +42,21 @@ export class BrowserUrlService {
 
   showVideo(videoId: string, type: VideoType) {
     if (!this.available) return;
-
-    const url = new URL(window.location.href);
-    this.deleteSearchParams(url);
-    url.searchParams.set('v', videoId);
-    url.searchParams.set('type', type);
-    this.setBrowserUrl(url);
+    this.setBrowserUrl(this.videoUrl(videoId, type));
   }
 
   showSearch(filters: SearchFilters) {
     if (!this.available) return;
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete('v');
-    url.searchParams.delete('type');
-    this.deleteSearchParams(url);
-    for (const [key, value] of new URLSearchParams(serializeFilters(filters))) {
-      url.searchParams.set(key, value);
-    }
+    const url = this.homeUrl();
+    url.search = serializeFilters(filters);
     this.setBrowserUrl(url);
   }
 
   /** Removes the video and the search from the URL. */
   clear() {
     if (!this.available) return;
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete('v');
-    url.searchParams.delete('type');
-    this.deleteSearchParams(url);
-    this.setBrowserUrl(url);
+    this.setBrowserUrl(this.homeUrl());
   }
 
   /** Back/forward: called after the browser has already changed the URL. */
@@ -71,8 +64,15 @@ export class BrowserUrlService {
     if (this.available) window.addEventListener('popstate', callback);
   }
 
-  private deleteSearchParams(url: URL) {
-    for (const key of SEARCH_FILTER_KEYS) url.searchParams.delete(key);
+  private videoUrl(videoId: string, type: VideoType): URL {
+    if (type === 'short') return new URL(`/shorts/${encodeURIComponent(videoId)}`, window.location.origin);
+    const url = new URL(WATCH_PATH, window.location.origin);
+    url.searchParams.set('v', videoId);
+    return url;
+  }
+
+  private homeUrl(): URL {
+    return new URL('/', window.location.origin);
   }
 
   /**
