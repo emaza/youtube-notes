@@ -1,7 +1,8 @@
 
-import { Component, ChangeDetectionStrategy, input, output, inject, signal, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StorageService } from '../../services/storage.service';
+import { SpeechService, baseLang } from '../../services/speech.service';
 import { SearchCacheService, MAX_SEARCH_CACHE_SIZE } from '../../services/search-cache.service';
 import { APP_VERSION } from '../../utils/version';
 
@@ -14,6 +15,7 @@ import { APP_VERSION } from '../../utils/version';
 })
 export class SettingsModalComponent {
   private storageService = inject(StorageService);
+  private speech = inject(SpeechService);
   searchCache = inject(SearchCacheService);
   readonly maxSearchCacheSize = MAX_SEARCH_CACHE_SIZE;
   readonly version = APP_VERSION;
@@ -34,6 +36,30 @@ export class SettingsModalComponent {
 
   storageStats = signal({ kb: '0.00', mb: '0.00', bytes: 0 });
 
+  /** Saved reading voice (`voiceURI`); empty means automatic. */
+  voiceURI = signal(this.storageService.getAppSettings()?.voiceURI ?? '');
+  /** Browser voices that speak the configured language (first one wins on a repeated voiceURI). */
+  languageVoices = computed(() => {
+    const base = baseLang(this.currentLanguage());
+    const seen = new Set<string>();
+    return this.speech.voices().filter(v => {
+      if (baseLang(v.lang) !== base || seen.has(v.voiceURI)) return false;
+      seen.add(v.voiceURI);
+      return true;
+    });
+  });
+  /**
+   * The saved voice if it is listed for the configured language, else '' (automatic). The saved
+   * value itself is kept, as the voices may not have loaded yet.
+   */
+  selectedVoiceURI = computed(() => {
+    const saved = this.voiceURI();
+    return this.languageVoices().some(v => v.voiceURI === saved) ? saved : '';
+  });
+  /** Show each voice's region only when the list mixes several (e.g. es-ES and es-MX). */
+  showVoiceLang = computed(() => new Set(this.languageVoices().map(v => v.lang)).size > 1);
+  previewing = computed(() => this.speech.isPreviewing());
+
   constructor() {
     effect(() => {
       // Re-calculate when modal is open.
@@ -42,13 +68,36 @@ export class SettingsModalComponent {
       
       if (isOpen) {
         this.storageStats.set(this.storageService.getStorageUsage());
+      } else {
+        this.speech.stopPreview();
       }
     });
   }
 
   onLanguageChange(event: Event) {
     const select = event.target as HTMLSelectElement;
+    this.speech.stopPreview();
+    // A saved voice only makes sense for its own language.
+    const voice = this.speech.voices().find(v => v.voiceURI === this.voiceURI());
+    if (this.voiceURI() && (!voice || baseLang(voice.lang) !== baseLang(select.value))) {
+      this.setVoice('');
+    }
     this.languageChange.emit(select.value);
+  }
+
+  onVoiceChange(event: Event) {
+    this.speech.stopPreview();
+    this.setVoice((event.target as HTMLSelectElement).value);
+  }
+
+  previewVoice() {
+    if (this.previewing()) this.speech.stopPreview();
+    else this.speech.previewVoice(this.selectedVoiceURI(), this.currentLanguage());
+  }
+
+  private setVoice(voiceURI: string) {
+    this.voiceURI.set(voiceURI);
+    this.storageService.saveAppSettings({ voiceURI: voiceURI || undefined });
   }
 
   onSearchCacheSizeChange(event: Event) {
