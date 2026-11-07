@@ -50,6 +50,31 @@ async function setup(page: Page, voices: FakeVoice[], settings: object, endUtter
 const spoken = (page: Page) => page.evaluate(() => (window as any).__spoken as { text: string; voiceURI: string | null }[]);
 const cancels = (page: Page) => page.evaluate(() => (window as any).__cancels as number);
 
+/**
+ * Like Chrome, cancel() leaves late "error"/"end" events for the cancelled utterances. They are
+ * queued as stale and only fired when the test calls `fireStale`, so no timing is involved.
+ */
+async function installStaleQueue(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as any;
+    const fake = window.speechSynthesis as any;
+    const pending: any[] = [];
+    const stale: any[] = [];
+    const speak = fake.speak;
+    fake.speak = (u: any) => { pending.push(u); speak(u); };
+    const cancel = fake.cancel;
+    fake.cancel = () => { cancel(); stale.push(...pending.splice(0)); };
+    w.__fireStale = () => {
+      const old = stale.splice(0);
+      old.forEach(u => { u.onerror?.(); u.onend?.(); });
+      return old.length;
+    };
+  });
+}
+
+/** Fires the late events of the cancelled utterances; returns how many there were. */
+const fireStale = (page: Page) => page.evaluate(() => (window as any).__fireStale() as number);
+
 async function openSettings(page: Page) {
   await page.goto('/');
   await page.getByTitle('Settings').first().click();
@@ -152,40 +177,23 @@ test.describe('Reading voice QA', () => {
 
   test('a late error/end event of a cancelled utterance does not clear the new reading', async ({ page }) => {
     await setup(page, VOICES, { language: 'es' });
-    // Like Chrome: cancel() fires an asynchronous "error" (canceled) on the pending utterances.
-    await page.addInitScript(() => {
-      const fake = window.speechSynthesis as any;
-      const pending: any[] = [];
-      const speak = fake.speak;
-      fake.speak = (u: any) => { pending.push(u); speak(u); };
-      const cancel = fake.cancel;
-      fake.cancel = () => {
-        cancel();
-        const old = pending.splice(0);
-        setTimeout(() => old.forEach(u => { u.onerror?.(); u.onend?.(); }), 400);
-      };
-    });
+    await installStaleQueue(page);
     await openSettings(page);
     await page.getByRole('button', { name: 'Test voice' }).click();
     await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
     await page.getByRole('button', { name: 'Stop' }).click();
     await page.getByRole('button', { name: 'Test voice' }).click();
     await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
-    await page.waitForTimeout(800); // the late events of the first utterance have fired by now
+    // The late events of the first (cancelled) utterance arrive while the new preview plays.
+    const fired = await fireStale(page);
+    expect(fired).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
     expect((await spoken(page)).length).toBe(2);
   });
 
   test('stop/pause/resume of a notes reading leave state consistent and a late event of an old reading is ignored', async ({ page }) => {
     await setup(page, VOICES, { language: 'es' });
-    await page.addInitScript(() => {
-      const fake = window.speechSynthesis as any;
-      const pending: any[] = [];
-      const speak = fake.speak;
-      fake.speak = (u: any) => { pending.push(u); speak(u); };
-      const cancel = fake.cancel;
-      fake.cancel = () => { cancel(); const old = pending.splice(0); setTimeout(() => old.forEach(u => u.onend?.()), 300); };
-    });
+    await installStaleQueue(page);
     await page.goto('/watch?v=aaaaaaaaaaa');
     await page.getByPlaceholder('Type your thoughts here...').fill('Una nota de prueba.');
     const notes = page.locator('app-notes');
@@ -197,7 +205,9 @@ test.describe('Reading voice QA', () => {
     await notes.getByTitle('Stop').click();
     await expect(notes.getByTitle('Play')).toBeVisible();
     await notes.getByTitle('Play').click(); // new reading before the old end event arrives
-    await page.waitForTimeout(700);
+    await expect(notes.getByTitle('Stop')).toBeVisible();
+    const fired = await fireStale(page);
+    expect(fired).toBeGreaterThan(0);
     await expect(notes.getByTitle('Stop')).toBeVisible();
   });
 });

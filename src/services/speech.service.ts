@@ -46,6 +46,7 @@ export interface SpeechStartPoint {
 })
 export class SpeechService {
   private storage = inject(StorageService);
+  /** Speech owner used by voice previews (see `previewVoice`). */
   private previewOwner = {};
   /** Bumped on every stop/new reading, so late events of a cancelled utterance are ignored. */
   private session = 0;

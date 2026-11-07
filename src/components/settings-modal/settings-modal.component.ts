@@ -58,6 +58,7 @@ export class SettingsModalComponent {
   });
   /** Show each voice's region only when the list mixes several (e.g. es-ES and es-MX). */
   showVoiceLang = computed(() => new Set(this.languageVoices().map(v => v.lang)).size > 1);
+  /** Whether the voice preview is playing (the test button then stops it). */
   previewing = computed(() => this.speech.isPreviewing());
 
   constructor() {
@@ -74,6 +75,7 @@ export class SettingsModalComponent {
     });
   }
 
+  /** Emits the new language, resetting the saved voice to automatic if it speaks another one. */
   onLanguageChange(event: Event) {
     const select = event.target as HTMLSelectElement;
     this.speech.stopPreview();
@@ -85,16 +87,19 @@ export class SettingsModalComponent {
     this.languageChange.emit(select.value);
   }
 
+  /** Saves the voice picked in the select ('' = automatic). */
   onVoiceChange(event: Event) {
     this.speech.stopPreview();
     this.setVoice((event.target as HTMLSelectElement).value);
   }
 
+  /** Test voice button: reads a short phrase with the selected voice, or stops the running preview. */
   previewVoice() {
     if (this.previewing()) this.speech.stopPreview();
     else this.speech.previewVoice(this.selectedVoiceURI(), this.currentLanguage());
   }
 
+  /** Updates and persists the reading voice; '' removes it from the settings. */
   private setVoice(voiceURI: string) {
     this.voiceURI.set(voiceURI);
     this.storageService.saveAppSettings({ voiceURI: voiceURI || undefined });
