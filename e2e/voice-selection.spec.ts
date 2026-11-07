@@ -137,6 +137,17 @@ test.describe('Reading voice selection', () => {
     await expect.poll(async () => (await spoken(page))[0]?.voiceURI).toBe('uri:Microsoft Helena');
   });
 
+  test('reading the notes with a saved voice that is gone falls back to the automatic voice', async ({ page }) => {
+    await setup(page, VOICES, { language: 'es', voiceURI: 'uri:Removed voice' });
+    await page.goto('/watch?v=aaaaaaaaaaa');
+    await page.getByPlaceholder('Type your thoughts here...').fill('Una nota de prueba.');
+    // The reading must find the voices loaded, so the saved (gone) voice is really looked up among them.
+    await expect.poll(() => page.evaluate(() => speechSynthesis.getVoices().length)).toBe(VOICES.length);
+    await page.locator('app-notes').getByTitle('Play').click();
+    // Automatic for es-ES: the local voice of the exact language.
+    await expect.poll(() => spoken(page)).toEqual([{ text: 'Una nota de prueba.', voiceURI: 'uri:Microsoft Helena' }]);
+  });
+
   test('without voices for the language the select is disabled and a notice is shown', async ({ page }) => {
     await setup(page, [voice('Google US English', 'en-US')]);
     await openSettings(page);
