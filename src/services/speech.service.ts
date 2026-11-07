@@ -165,6 +165,7 @@ export class SpeechService {
     else CSS.highlights.delete(START_HIGHLIGHT);
   }
 
+  /** Marks the reading as finished, unless it was stopped or replaced since (`session`). */
   private finish(owner: object, session: number) {
     if (this.session !== session || this.speaking() !== owner) return;
     this.speaking.set(null);

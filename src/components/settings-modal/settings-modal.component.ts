@@ -58,6 +58,12 @@ export class SettingsModalComponent {
   });
   /** Show each voice's region only when the list mixes several (e.g. es-ES and es-MX). */
   showVoiceLang = computed(() => new Set(this.languageVoices().map(v => v.lang)).size > 1);
+
+  /** Option text: name, plus region (if several) and "online" for remote voices, e.g. "Google español (es-ES, online)". */
+  voiceLabel(voice: SpeechSynthesisVoice): string {
+    const details = [this.showVoiceLang() ? voice.lang : '', voice.localService ? '' : 'online'].filter(Boolean);
+    return details.length ? `${voice.name} (${details.join(', ')})` : voice.name;
+  }
   /** Whether the voice preview is playing (the test button then stops it). */
   previewing = computed(() => this.speech.isPreviewing());
 
