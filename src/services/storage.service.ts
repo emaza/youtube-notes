@@ -171,6 +171,8 @@ export class StorageService {
 
   /**
    * Restores data from a JSON string. Returns the number of items restored.
+   * Entries whose key would land on a reserved app key (the settings) are ignored and not counted,
+   * so a backup can only restore video sessions.
    */
   restoreBackupData(jsonStr: string): number {
     let count = 0;
@@ -182,6 +184,8 @@ export class StorageService {
 
       Object.keys(backup).forEach(videoId => {
         const data = backup[videoId];
+        // The only app key under the prefix that is not a video session.
+        if (this.getKey(videoId) === this.SETTINGS_KEY) return;
         // Basic validation to ensure it looks like our data
         if (data && typeof data === 'object' && 'notes' in data) {
            localStorage.setItem(this.getKey(videoId), JSON.stringify(data));

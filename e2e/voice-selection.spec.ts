@@ -84,8 +84,8 @@ test.describe('Reading voice selection', () => {
     await expect(select).toBeEnabled();
     await expect(select.locator('option')).toHaveText([
       'Automatic',
-      'Google español (es-ES)',
-      'Google español de Estados Unidos (es-US)',
+      'Google español (es-ES, online)',
+      'Google español de Estados Unidos (es-US, online)',
       'Microsoft Helena (es-ES)'
     ]);
     await expect(page.getByText('Your browser has no voices available for this language.')).toBeHidden();
@@ -125,7 +125,7 @@ test.describe('Reading voice selection', () => {
     await page.locator('#language').selectOption('en');
     await expect(page.getByLabel('Reading voice')).toHaveValue('');
     expect(await savedVoice(page)).toBeUndefined();
-    await expect(page.getByLabel('Reading voice').locator('option')).toHaveText(['Automatic', 'Google US English']);
+    await expect(page.getByLabel('Reading voice').locator('option')).toHaveText(['Automatic', 'Google US English (online)']);
 
     await page.getByRole('button', { name: 'Test voice' }).click();
     await expect.poll(() => spoken(page)).toEqual([{ text: 'Hello, this is the selected voice.', voiceURI: 'uri:Google US English' }]);
@@ -155,10 +155,48 @@ test.describe('Reading voice selection', () => {
   test('without voices for the language the select is disabled and a notice is shown', async ({ page }) => {
     await setup(page, [voice('Google US English', 'en-US')]);
     await openSettings(page);
-    // The select stays disabled either way, so wait until the (non-Spanish) voices have loaded.
-    await expect.poll(() => page.evaluate(() => speechSynthesis.getVoices().length)).toBe(1);
-    await expect(page.getByLabel('Reading voice')).toBeDisabled();
+    // The select is disabled before and after the voices load: switching to English shows them painted.
+    const select = page.getByLabel('Reading voice');
+    await page.locator('#language').selectOption('en');
+    await expect(select).toBeEnabled();
+    await expect(select.locator('option')).toHaveText(['Automatic', 'Google US English (online)']);
+    await page.locator('#language').selectOption('es');
+    await expect(select).toBeDisabled();
     await expect(page.getByText('Your browser has no voices available for this language.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Test voice' })).toBeDisabled();
+  });
+
+  test('remote voices are marked "online" and local ones are not', async ({ page }) => {
+    await setup(page, [voice('Google español', 'es-ES'), voice('Microsoft Helena', 'es-ES', true)]);
+    await openSettings(page);
+    await expect(page.getByLabel('Reading voice').locator('option')).toHaveText([
+      'Automatic',
+      'Google español (online)',
+      'Microsoft Helena'
+    ]);
+  });
+
+  test('importing a backup restores only video sessions, never the settings', async ({ page }) => {
+    await setup(page, VOICES, { language: 'es', voiceURI: 'uri:Google español' });
+    await openSettings(page);
+    const settingsBefore = await page.evaluate(() => localStorage.getItem('yt-notetaker-settings'));
+
+    const backup = {
+      // Would be written to the settings key ('yt-notetaker-' + 'settings') if it were not filtered.
+      settings: { notes: 'x', language: 'en', voiceURI: 'uri:Google US English' },
+      aaaaaaaaaaa: { title: 'Restored video', notes: 'Restored notes', messages: [], lastUpdated: 1, type: 'video' }
+    };
+    // The real flow: "Import Backup" opens the file chooser of the import input.
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Import Backup' }).click();
+    await (await chooser).setFiles({
+      name: 'backup.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(backup))
+    });
+
+    await expect(page.getByText('Successfully restored 1 sessions.')).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('yt-notetaker-settings'))).toBe(settingsBefore);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('yt-notetaker-aaaaaaaaaaa') ?? 'null')?.notes)).toBe('Restored notes');
   });
 });

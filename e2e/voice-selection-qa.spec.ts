@@ -147,10 +147,10 @@ test.describe('Reading voice QA', () => {
     await setup(page, dup, { language: 'es' }, { endUtterances: true });
     await openSettings(page);
     const select = page.getByLabel('Reading voice');
-    await select.selectOption({ label: 'Voz A' });
+    await select.selectOption({ label: 'Voz A (online)' });
     await page.reload();
     await page.getByTitle('Settings').first().click();
-    await expect(page.getByLabel('Reading voice').locator('option:checked')).toHaveText('Voz A');
+    await expect(page.getByLabel('Reading voice').locator('option:checked')).toHaveText('Voz A (online)');
   });
 
   test('voices that arrive late (voiceschanged) fill the open select and keep the saved choice', async ({ page }) => {
@@ -206,5 +206,21 @@ test.describe('Reading voice QA', () => {
     const fired = await fireStale(page);
     expect(fired).toBeGreaterThan(0);
     await expect(notes.getByTitle('Stop')).toBeVisible();
+  });
+
+  test('backup import with odd keys: settings are never overwritten', async ({ page }) => {
+    await setup(page, VOICES, { language: 'es', voiceURI: 'uri:Google español' });
+    await openSettings(page);
+    const before = await page.evaluate(() => localStorage.getItem('yt-notetaker-settings'));
+    const entry = '{"title":"t","notes":"n","messages":[],"lastUpdated":1,"type":"video"}';
+    // Raw JSON: an object literal would turn "__proto__" into a prototype instead of an own key.
+    const raw = `{"settings":${entry},"Settings":${entry},"":${entry},"__proto__":${entry},"aaaaaaaaaaa":${entry}}`;
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Import Backup' }).click();
+    await (await chooser).setFiles({ name: 'b.json', mimeType: 'application/json', buffer: Buffer.from(raw) });
+    await expect(page.getByText(/Successfully restored \d+ sessions\./)).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('yt-notetaker-settings'))).toBe(before);
+    // the app keeps working afterwards
+    await page.getByLabel('Reading voice').selectOption('');
   });
 });
