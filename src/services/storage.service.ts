@@ -26,6 +26,8 @@ export interface AppSettings {
   language?: string;
   /** Max searches kept in the local search cache (0 disables it). */
   searchCacheSize?: number;
+  /** `SpeechSynthesisVoice.voiceURI` chosen for reading aloud; unset means automatic. */
+  voiceURI?: string;
 }
 
 @Injectable({
