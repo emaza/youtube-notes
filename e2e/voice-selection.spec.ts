@@ -120,6 +120,8 @@ test.describe('Reading voice selection', () => {
   test('changing the language resets a voice of another language to Automatic', async ({ page }) => {
     await setup(page, VOICES, { language: 'es', voiceURI: 'uri:Google español' });
     await openSettings(page);
+    // Wait for the voices: before they load, the reset would happen just because the voice is unknown.
+    await expect(page.getByLabel('Reading voice')).toHaveValue('uri:Google español');
     await page.locator('#language').selectOption('en');
     await expect(page.getByLabel('Reading voice')).toHaveValue('');
     expect(await savedVoice(page)).toBeUndefined();
@@ -132,6 +134,8 @@ test.describe('Reading voice selection', () => {
   test('a saved voice that is gone shows Automatic and does not break reading', async ({ page }) => {
     await setup(page, VOICES, { language: 'es', voiceURI: 'uri:Removed voice' });
     await openSettings(page);
+    // Enabled = the voices have loaded; before that the value is '' anyway.
+    await expect(page.getByLabel('Reading voice')).toBeEnabled();
     await expect(page.getByLabel('Reading voice')).toHaveValue('');
     await page.getByRole('button', { name: 'Test voice' }).click();
     await expect.poll(async () => (await spoken(page))[0]?.voiceURI).toBe('uri:Microsoft Helena');
@@ -140,6 +144,8 @@ test.describe('Reading voice selection', () => {
   test('without voices for the language the select is disabled and a notice is shown', async ({ page }) => {
     await setup(page, [voice('Google US English', 'en-US')]);
     await openSettings(page);
+    // The select stays disabled either way, so wait until the (non-Spanish) voices have loaded.
+    await expect.poll(() => page.evaluate(() => speechSynthesis.getVoices().length)).toBe(1);
     await expect(page.getByLabel('Reading voice')).toBeDisabled();
     await expect(page.getByText('Your browser has no voices available for this language.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Test voice' })).toBeDisabled();
