@@ -46,6 +46,42 @@
           <p class="mt-1 text-xs text-gray-500">Changes apply immediately to new messages.</p>
         </div>
 
+        <!-- Reading Voice -->
+        <div class="mb-4">
+          <label for="voice" class="block text-sm font-medium text-gray-400 mb-2">Reading voice</label>
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1 min-w-0">
+              <select
+                id="voice"
+                (change)="onVoiceChange($event)"
+                [disabled]="languageVoices().length === 0"
+                class="block w-full bg-gray-700 border border-gray-600 text-white py-2 px-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="" [selected]="!selectedVoiceURI()">Automatic</option>
+                @for (voice of languageVoices(); track $index) {
+                  <option [value]="voice.voiceURI" [selected]="voice.voiceURI === selectedVoiceURI()">{{ voiceLabel(voice) }}</option>
+                }
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+            <button
+              type="button"
+              (click)="previewVoice()"
+              [disabled]="languageVoices().length === 0"
+              class="bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-200 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ previewing() ? 'Stop' : 'Test voice' }}
+            </button>
+          </div>
+          @if (languageVoices().length === 0) {
+            <p class="mt-1 text-xs text-gray-500">Your browser has no voices available for this language.</p>
+          }
+        </div>
+
         <!-- Install App Button (Conditional) -->
         @if (canInstall()) {
            <div class="mb-4">
